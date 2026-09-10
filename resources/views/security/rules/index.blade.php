@@ -17,7 +17,7 @@
 </div>
 
 {{-- Create Modal --}}
-<div id="modal-create-rule" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+<div id="modal-create-rule" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm" onclick="if(event.target===this)this.classList.add('hidden')">
     <div class="bg-slate-900 border border-slate-700 rounded-2xl p-6 shadow-2xl w-full max-w-md">
         <h2 class="text-lg font-bold text-white mb-4">Tambah Security Rule Baru</h2>
         <form action="{{ route('security.rules.store') }}" method="POST" class="space-y-4 text-sm">
@@ -66,14 +66,18 @@
     </div>
 </div>
 
-
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
     @foreach($rules as $rule)
-    <div x-data="{ editing: false }" class="bg-slate-900 border {{ $rule->enabled ? 'border-slate-700' : 'border-slate-800 opacity-60' }} rounded-2xl p-5 relative">
+    <div class="bg-slate-900 border {{ $rule->enabled ? 'border-slate-700' : 'border-slate-800 opacity-60' }} rounded-2xl p-5 relative">
         <div class="flex justify-between items-start mb-4">
             <h3 class="text-lg font-bold text-white">{{ str_replace('_', ' ', $rule->name) }}</h3>
             <div class="flex items-center gap-3">
-                <button @click="editing = true" class="text-slate-400 hover:text-blue-400 text-xs font-semibold">EDIT</button>
+                <button
+                    onclick="toggleEdit({{ $rule->id }})"
+                    class="text-slate-400 hover:text-blue-400 text-xs font-semibold transition"
+                >
+                    EDIT
+                </button>
                 <form action="{{ route('security.rules.toggle', $rule) }}" method="POST">
                     @csrf
                     <button type="submit" class="w-10 h-5 rounded-full relative transition-colors {{ $rule->enabled ? 'bg-emerald-500' : 'bg-slate-700' }}">
@@ -82,8 +86,9 @@
                 </form>
             </div>
         </div>
-        
-        <div x-show="!editing" class="space-y-3 text-sm">
+
+        {{-- View Mode --}}
+        <div id="view-{{ $rule->id }}" class="space-y-3 text-sm">
             <div class="flex justify-between border-b border-slate-800 pb-2">
                 <span class="text-slate-400">Threshold</span>
                 <span class="text-white font-medium">{{ $rule->threshold }} events</span>
@@ -108,7 +113,8 @@
             </div>
         </div>
 
-        <form x-show="editing" x-cloak action="{{ route('security.rules.update', $rule) }}" method="POST" class="space-y-3 text-sm">
+        {{-- Edit Mode --}}
+        <form id="edit-{{ $rule->id }}" action="{{ route('security.rules.update', $rule) }}" method="POST" class="hidden space-y-3 text-sm">
             @csrf
             @method('PUT')
             <div class="grid grid-cols-2 gap-3">
@@ -143,10 +149,27 @@
             </div>
             <div class="flex gap-2 pt-2 border-t border-slate-800">
                 <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded py-1.5 font-medium transition">Simpan</button>
-                <button type="button" @click="editing = false" class="flex-1 bg-slate-800 hover:bg-slate-700 text-white rounded py-1.5 font-medium transition">Batal</button>
+                <button type="button" onclick="toggleEdit({{ $rule->id }})" class="flex-1 bg-slate-800 hover:bg-slate-700 text-white rounded py-1.5 font-medium transition">Batal</button>
             </div>
         </form>
     </div>
     @endforeach
 </div>
+
+<script>
+function toggleEdit(ruleId) {
+    var viewEl  = document.getElementById('view-' + ruleId);
+    var editEl  = document.getElementById('edit-' + ruleId);
+    var isEditing = !editEl.classList.contains('hidden');
+
+    if (isEditing) {
+        editEl.classList.add('hidden');
+        viewEl.classList.remove('hidden');
+    } else {
+        viewEl.classList.add('hidden');
+        editEl.classList.remove('hidden');
+    }
+}
+</script>
 @endsection
+
