@@ -16,6 +16,33 @@
     </button>
 </div>
 
+{{-- Info Panel --}}
+<div class="mb-6 bg-slate-900 border border-blue-500/20 rounded-2xl p-5">
+    <div class="flex items-start gap-3">
+        <div class="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center shrink-0 mt-0.5">
+            <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        </div>
+        <div>
+            <p class="text-sm font-semibold text-white mb-2">Cara Kerja Detection Rules</p>
+            <p class="text-xs text-slate-400 mb-3">Rules tidak perlu input <code class="bg-slate-800 px-1 py-0.5 rounded text-blue-300">event_type</code> / <code class="bg-slate-800 px-1 py-0.5 rounded text-blue-300">action</code> secara manual — engine sudah otomatis mengenali pola dari <strong class="text-white">nama rule</strong>. Yang bisa dikonfigurasi hanya <strong class="text-white">threshold</strong> dan <strong class="text-white">time window</strong>-nya.</p>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div class="bg-slate-950 rounded-xl p-3 border border-slate-800">
+                    <p class="text-xs font-bold text-amber-400 mb-1">BRUTE_FORCE</p>
+                    <p class="text-[11px] text-slate-400">Login gagal ≥ <strong class="text-white">threshold</strong> kali dari <strong class="text-white">IP + username yang sama</strong> dalam <strong class="text-white">time window</strong> detik.</p>
+                </div>
+                <div class="bg-slate-950 rounded-xl p-3 border border-slate-800">
+                    <p class="text-xs font-bold text-orange-400 mb-1">PASSWORD_SPRAYING</p>
+                    <p class="text-[11px] text-slate-400">Login gagal dari <strong class="text-white">1 IP</strong> ke ≥ <strong class="text-white">threshold</strong> username berbeda dalam <strong class="text-white">time window</strong> detik.</p>
+                </div>
+                <div class="bg-slate-950 rounded-xl p-3 border border-slate-800">
+                    <p class="text-xs font-bold text-rose-400 mb-1">ACCOUNT_COMPROMISE</p>
+                    <p class="text-[11px] text-slate-400">Login <strong class="text-white">berhasil</strong> dari IP yang sebelumnya gagal ≥ <strong class="text-white">threshold</strong> kali dalam <strong class="text-white">time window</strong> detik.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 {{-- Create Modal --}}
 <div id="modal-create-rule" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm" onclick="if(event.target===this)this.classList.add('hidden')">
     <div class="bg-slate-900 border border-slate-700 rounded-2xl p-6 shadow-2xl w-full max-w-md">

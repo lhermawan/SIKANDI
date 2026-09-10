@@ -49,29 +49,86 @@ class SecurityDetectionEngine
         }
     }
 
+    /**
+     * Normalize event_type + action into canonical login type signals.
+     * Returns ['is_login_fail' => bool, 'is_login_success' => bool].
+     */
+    protected function classifyEvent(SecurityEvent $event): array
+    {
+        $type   = strtolower($event->event_type ?? '');
+        $action = strtolower($event->action ?? '');
+
+        $combined = $type . '_' . $action; // e.g. "login_failed"
+
+        $isLoginFail = in_array($type, ['login', 'authentication', 'auth', 'loginfailed', 'login_failed', 'failed_login'])
+            || in_array($action, ['failed', 'login_failed', 'failure', 'denied'])
+            || str_contains($type, 'loginfail')
+            || str_contains($type, 'login_fail')
+            || str_contains($type, 'failedlogin')
+            || str_contains($combined, 'fail');
+
+        $isLoginSuccess = (
+            in_array($type, ['login', 'authentication', 'auth', 'loginsuccess', 'login_success'])
+            && in_array($action, ['success', 'login_success', 'accepted', 'ok'])
+        ) || in_array($type, ['loginsuccess', 'login_success', 'success_login']);
+
+        // If type itself signals failure, it's not a success
+        if (str_contains($type, 'fail')) {
+            $isLoginSuccess = false;
+        }
+
+        return [
+            'is_login_fail'    => $isLoginFail,
+            'is_login_success' => $isLoginSuccess,
+        ];
+    }
+
+    /**
+     * Build a query scope that matches all known "login failed" event_type + action combos.
+     */
+    protected function queryLoginFailed($query)
+    {
+        return $query->where(function ($q) {
+            $q->where(function ($inner) {
+                // Normalized: type is login-like AND action is failed-like
+                $inner->whereIn('event_type', ['login', 'authentication', 'auth'])
+                    ->whereIn('action', ['failed', 'login_failed', 'failure', 'denied']);
+            })->orWhereIn('event_type', [
+                'loginfailed', 'login_failed', 'failed_login',
+                'LOGINFAILED', 'LOGIN_FAILED', 'FAILED_LOGIN',
+            ])->orWhere(function ($inner) {
+                $inner->where('event_type', 'like', '%login%')
+                    ->where('event_type', 'like', '%fail%');
+            });
+        });
+    }
+
     protected function detectBruteForce(SecurityEvent $event, SecurityRule $rule)
     {
-        if ($event->event_type !== 'login' && $event->event_type !== 'authentication') return;
-        if ($event->action !== 'failed' && $event->action !== 'login_failed') return;
-        if (empty($event->source_ip) || empty($event->username)) return;
+        $cls = $this->classifyEvent($event);
+        if (! $cls['is_login_fail']) {
+            return;
+        }
+        if (empty($event->source_ip) || empty($event->username)) {
+            return;
+        }
 
         $since = Carbon::parse($event->timestamp)->subSeconds($rule->time_window_seconds);
 
-        $failedCount = SecurityEvent::where('event_type', $event->event_type)
-            ->whereIn('action', ['failed', 'login_failed'])
-            ->where('agent_id', $event->agent_id)
-            ->where('source_ip', $event->source_ip)
-            ->where('username', $event->username)
-            ->where('timestamp', '>=', $since)
-            ->count();
+        $failedCount = $this->queryLoginFailed(
+            SecurityEvent::where('agent_id', $event->agent_id)
+                ->where('source_ip', $event->source_ip)
+                ->where('username', $event->username)
+                ->where('timestamp', '>=', $since)
+        )->count();
 
         if ($failedCount >= $rule->threshold) {
             $this->createOrUpdateIncident(
-                $event, 
-                $rule, 
-                "BRUTE_FORCE", 
+                $event,
+                $rule,
+                'BRUTE_FORCE',
                 "Multiple failed authentication attempts detected for user {$event->username} from {$event->source_ip}.",
-                "unauthorized_access",
+                'unauthorized_access',
                 ['source_ip' => $event->source_ip, 'username' => $event->username]
             );
         }
@@ -79,27 +136,29 @@ class SecurityDetectionEngine
 
     protected function detectPasswordSpraying(SecurityEvent $event, SecurityRule $rule)
     {
-        if ($event->event_type !== 'login' && $event->event_type !== 'authentication') return;
-        if ($event->action !== 'failed' && $event->action !== 'login_failed') return;
-        if (empty($event->source_ip)) return;
+        $cls = $this->classifyEvent($event);
+        if (! $cls['is_login_fail']) {
+            return;
+        }
+        if (empty($event->source_ip)) {
+            return;
+        }
 
         $since = Carbon::parse($event->timestamp)->subSeconds($rule->time_window_seconds);
 
-        $uniqueUsers = SecurityEvent::where('event_type', $event->event_type)
-            ->whereIn('action', ['failed', 'login_failed'])
-            ->where('agent_id', $event->agent_id)
-            ->where('source_ip', $event->source_ip)
-            ->where('timestamp', '>=', $since)
-            ->distinct('username')
-            ->count('username');
+        $uniqueUsers = $this->queryLoginFailed(
+            SecurityEvent::where('agent_id', $event->agent_id)
+                ->where('source_ip', $event->source_ip)
+                ->where('timestamp', '>=', $since)
+        )->distinct('username')->count('username');
 
         if ($uniqueUsers >= $rule->threshold) {
             $this->createOrUpdateIncident(
-                $event, 
-                $rule, 
-                "PASSWORD_SPRAYING", 
+                $event,
+                $rule,
+                'PASSWORD_SPRAYING',
                 "Possible Password Spraying from IP {$event->source_ip} targeting {$uniqueUsers} unique usernames.",
-                "unauthorized_access",
+                'unauthorized_access',
                 ['source_ip' => $event->source_ip]
             );
         }
@@ -107,33 +166,36 @@ class SecurityDetectionEngine
 
     protected function detectAccountCompromise(SecurityEvent $event, SecurityRule $rule)
     {
-        if ($event->event_type !== 'login' && $event->event_type !== 'authentication') return;
-        if ($event->action !== 'success' && $event->action !== 'login_success') return;
-        if (empty($event->source_ip) || empty($event->username)) return;
+        $cls = $this->classifyEvent($event);
+        if (! $cls['is_login_success']) {
+            return;
+        }
+        if (empty($event->source_ip) || empty($event->username)) {
+            return;
+        }
 
         $since = Carbon::parse($event->timestamp)->subSeconds($rule->time_window_seconds);
 
-        // Check if there are failures preceding this success
-        $failedCount = SecurityEvent::where('event_type', $event->event_type)
-            ->whereIn('action', ['failed', 'login_failed'])
-            ->where('agent_id', $event->agent_id)
-            ->where('source_ip', $event->source_ip)
-            ->where('username', $event->username)
-            ->where('timestamp', '>=', $since)
-            ->where('timestamp', '<', $event->timestamp)
-            ->count();
+        $failedCount = $this->queryLoginFailed(
+            SecurityEvent::where('agent_id', $event->agent_id)
+                ->where('source_ip', $event->source_ip)
+                ->where('username', $event->username)
+                ->where('timestamp', '>=', $since)
+                ->where('timestamp', '<', $event->timestamp)
+        )->count();
 
-        if ($failedCount >= $rule->threshold) { // e.g. >= 1
+        if ($failedCount >= $rule->threshold) {
             $this->createOrUpdateIncident(
-                $event, 
-                $rule, 
-                "ACCOUNT_COMPROMISE", 
+                $event,
+                $rule,
+                'ACCOUNT_COMPROMISE',
                 "Successful login by {$event->username} from {$event->source_ip} after multiple failed attempts.",
-                "account_compromise",
+                'account_compromise',
                 ['source_ip' => $event->source_ip, 'username' => $event->username]
             );
         }
     }
+
 
     protected function createOrUpdateIncident(SecurityEvent $triggerEvent, SecurityRule $rule, $ruleName, $description, $incidentType, $fingerprint = [])
     {
