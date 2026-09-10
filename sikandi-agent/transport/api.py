@@ -15,21 +15,54 @@ class ApiClient:
         return {"Authorization": f"Bearer {self.token}", "Accept": "application/json"}
         
     def register(self):
-        try:
-            resp = requests.post(f"{self.base_url}/register", json={
-                "registration_token": self.token,
-                "hostname": socket.gethostname(),
-                "os": "Cross-Platform",
-                "os_version": "2.0",
-                "agent_version": "2.0.0"
-            }, timeout=self.timeout)
-            if resp.status_code == 201:
-                return True
-            # if 401 maybe we are using sanctum token already
-            return True
-        except Exception as e:
-            logger.error(f"Register error: {e}")
-            return False
+        if "MASUKKAN_TOKEN_ANDA_DISINI" in self.token:
+            print("=== SIKANDI Agent Simulator ===")
+            print("[-] Token belum disetel di config.yaml.")
+            reg_token = input("Masukkan Registration Token: ").strip()
+            self.token = reg_token
+            
+            try:
+                print("[1] Registrasi Agent...")
+                resp = requests.post(f"{self.base_url}/register", json={
+                    "registration_token": reg_token,
+                    "hostname": socket.gethostname(),
+                    "os": "Cross-Platform",
+                    "os_version": "2.0",
+                    "agent_version": "2.0.0"
+                }, timeout=self.timeout)
+                
+                if resp.status_code == 201:
+                    data = resp.json()
+                    agent_id = data.get('agent_id')
+                    print(f"Registrasi Berhasil! Agent ID: {agent_id}")
+                    print("\n>>> PENTING: Buka browser SIKANDI, masuk ke Server Agents.")
+                    print(">>> Klik tombol 'Approve' lalu COPY token Sanctum yang muncul.")
+                    
+                    sanctum_token = input("\nMasukkan Agent Token (Sanctum) yang baru digenerate: ").strip()
+                    self.token = sanctum_token
+                    
+                    # Update config.yaml with new token automatically
+                    import yaml
+                    try:
+                        with open(self.config.path, 'r') as f:
+                            cfg = yaml.safe_load(f)
+                        cfg['api']['token'] = sanctum_token
+                        with open(self.config.path, 'w') as f:
+                            yaml.safe_dump(cfg, f, default_flow_style=False)
+                        print("Token berhasil disimpan ke config.yaml. Melanjutkan monitoring...")
+                    except Exception as e:
+                        print("Gagal menyimpan ke config.yaml, menggunakan token sementara di memori.")
+                    
+                    return True
+                else:
+                    logger.error(f"Registrasi gagal: {resp.text}")
+                    return False
+            except Exception as e:
+                logger.error(f"Register error: {e}")
+                return False
+                
+        # Jika token sudah ada di config, anggap sukses (sudah memiliki sanctum token)
+        return True
 
     def send_heartbeat(self):
         try:
