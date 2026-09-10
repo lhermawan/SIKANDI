@@ -96,8 +96,25 @@ class SikandiAgent:
                     events.extend(brute_det.analyze(logins))
                     events.extend(proc_det.analyze(procs))
                     
-                    # 3. Score & Queue
+                    # 3. Normalize, Score & Queue
+                    import platform
+                    import uuid
+                    import time
+                    current_host = platform.node()
+                    current_time = int(time.time())
+                    
                     for ev in events:
+                        ev['event_id'] = str(uuid.uuid4())
+                        ev['hostname'] = ev.get('hostname', current_host)
+                        ev['timestamp'] = ev.get('timestamp', current_time)
+                        ev['event_type'] = ev.get('event_type', 'unknown')
+                        ev['action'] = ev.get('action', 'unknown')
+                        ev['username'] = ev.get('username', 'N/A')
+                        ev['source_ip'] = ev.get('source_ip', 'N/A')
+                        ev['process'] = ev.get('process_name', 'N/A')
+                        ev['severity'] = ev.get('severity', 'info')
+                        ev['reason'] = ev.get('reason', 'Detected anomalous behavior')
+                        
                         ev = scorer.calculate(ev)
                         if not self.deduplicator.is_duplicate(ev):
                             self.queue.add(ev)
