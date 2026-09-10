@@ -5,7 +5,12 @@ class RiskScorer:
             'brute_force_detected': 50,
             'suspicious_process_started': 25,
             'file_integrity_modified': 40,
-            'file_integrity_deleted': 40
+            'file_integrity_deleted': 40,
+            'network_suspicious_connection': 25,
+            'persistence_created': 50,
+            'privilege_escalation_attempt': 40,
+            'suspicious_login_detected': 20,
+            'correlation_privilege_escalation_after_suspicious_login': 80
         }
         
     def calculate(self, event):

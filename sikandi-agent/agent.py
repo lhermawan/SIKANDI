@@ -65,16 +65,28 @@ class SikandiAgent:
         from collectors.processes import ProcessCollector
         from collectors.network import NetworkCollector
         from collectors.file_integrity import FIMCollector
+        
         from detectors.brute_force import BruteForceDetector
         from detectors.suspicious_process import SuspiciousProcessDetector
+        from detectors.suspicious_network import SuspiciousNetworkDetector
+        from detectors.persistence import PersistenceDetector
+        from detectors.privilege_escalation import PrivilegeEscalationDetector
+        from detectors.suspicious_login import SuspiciousLoginDetector
+        
         from security.risk_score import RiskScorer
         
         login_coll = LoginCollector()
         proc_coll = ProcessCollector()
+        net_coll = NetworkCollector()
         fim_coll = FIMCollector(self.config)
         
         brute_det = BruteForceDetector(self.config)
         proc_det = SuspiciousProcessDetector()
+        net_det = SuspiciousNetworkDetector()
+        pers_det = PersistenceDetector()
+        priv_det = PrivilegeEscalationDetector()
+        login_det = SuspiciousLoginDetector()
+        
         scorer = RiskScorer()
         
         while True:
@@ -88,13 +100,21 @@ class SikandiAgent:
                     events.extend(logins)
                     
                     procs = proc_coll.collect()
+                    net_conns = net_coll.collect()
                     
                     fims = fim_coll.collect()
                     events.extend(fims)
                     
                     # 2. Detect
                     events.extend(brute_det.analyze(logins))
+                    events.extend(login_det.analyze(logins))
                     events.extend(proc_det.analyze(procs))
+                    events.extend(priv_det.analyze(procs))
+                    events.extend(net_det.analyze(net_conns))
+                    events.extend(pers_det.analyze(None))
+                    
+                    # 2.5 Correlate locally (Agent-side)
+                    events.extend(self.correlation.analyze(events))
                     
                     # 3. Normalize, Score & Queue
                     import platform
