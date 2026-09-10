@@ -129,23 +129,35 @@
                 <h2 class="text-sm font-semibold text-white">Monitored Services</h2>
             </div>
             <div class="p-0">
-                @if($agent->services->count() > 0)
-                    <table class="w-full text-left text-sm">
-                        <tbody class="divide-y divide-slate-800">
-                            @foreach($agent->services as $svc)
-                                <tr class="hover:bg-slate-800/30">
-                                    <td class="px-5 py-3 font-medium text-slate-300">{{ $svc->service_name }}</td>
-                                    <td class="px-5 py-3 text-right">
-                                        @if(strtolower($svc->status) === 'running')
-                                            <span class="text-emerald-400 text-xs font-semibold">● Running</span>
-                                        @else
-                                            <span class="text-rose-400 text-xs font-semibold">● {{ $svc->status }}</span>
-                                        @endif
-                                    </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
+                @php
+                    $sortedServices = $agent->services->sortBy(function($svc) {
+                        return strtolower($svc->status) === 'running' ? 0 : 1;
+                    })->values();
+                @endphp
+                @if($sortedServices->count() > 0)
+                    <div x-data="{ expanded: false }">
+                        <table class="w-full text-left text-sm">
+                            <tbody class="divide-y divide-slate-800">
+                                @foreach($sortedServices as $index => $svc)
+                                    <tr class="hover:bg-slate-800/30 transition-all" x-show="expanded || {{ $index }} < 5">
+                                        <td class="px-5 py-3 font-medium text-slate-300">{{ $svc->service_name }}</td>
+                                        <td class="px-5 py-3 text-right">
+                                            @if(strtolower($svc->status) === 'running')
+                                                <span class="text-emerald-400 text-xs font-semibold">● Running</span>
+                                            @else
+                                                <span class="text-rose-400 text-xs font-semibold">● {{ $svc->status }}</span>
+                                            @endif
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                        @if($sortedServices->count() > 5)
+                            <button @click="expanded = !expanded" class="w-full py-3 text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800/40 border-t border-slate-800 transition">
+                                <span x-text="expanded ? 'Tampilkan Lebih Sedikit' : 'Lihat Semua ({{ $sortedServices->count() }})'"></span>
+                            </button>
+                        @endif
+                    </div>
                 @else
                     <p class="text-sm text-slate-500 text-center py-6">Belum ada data service.</p>
                 @endif

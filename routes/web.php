@@ -96,6 +96,8 @@ Route::middleware('auth')->group(function () {
 
         // Rules
         Route::get('/rules', [\App\Http\Controllers\SecurityRuleController::class, 'index'])->name('rules.index');
+        Route::post('/rules', [\App\Http\Controllers\SecurityRuleController::class, 'store'])->name('rules.store');
+        Route::put('/rules/{rule}', [\App\Http\Controllers\SecurityRuleController::class, 'update'])->name('rules.update');
         Route::post('/rules/{rule}/toggle', [\App\Http\Controllers\SecurityRuleController::class, 'toggle'])->name('rules.toggle');
 
         Route::get('/risks', [\App\Http\Controllers\RiskController::class, 'index'])->name('risks.index');
