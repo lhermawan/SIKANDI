@@ -82,30 +82,73 @@
 
         <!-- Quick SOP Documents -->
         <div class="space-y-4">
-            <h2 class="font-bold text-white text-base">Berkas SOP & Regulasi</h2>
-            <div class="bg-slate-900/80 border border-slate-800/80 rounded-2xl p-5 space-y-3">
-                <div class="p-3 bg-slate-950/60 border border-slate-800 rounded-xl text-xs flex items-center justify-between">
-                    <div>
-                        <span class="font-bold text-white block">SOP-CSIRT-01</span>
-                        <span class="text-slate-400 text-[11px]">SOP Penanganan Insiden Siber 1x24 Jam</span>
-                    </div>
-                    <span class="text-[10px] px-2 py-0.5 rounded bg-blue-500/20 text-blue-300">PDF</span>
-                </div>
-                <div class="p-3 bg-slate-950/60 border border-slate-800 rounded-xl text-xs flex items-center justify-between">
-                    <div>
-                        <span class="font-bold text-white block">SOP-SANDI-02</span>
-                        <span class="text-slate-400 text-[11px]">Pedoman Penggunaan Sandi & Kriptografi</span>
-                    </div>
-                    <span class="text-[10px] px-2 py-0.5 rounded bg-blue-500/20 text-blue-300">PDF</span>
-                </div>
-                <div class="p-3 bg-slate-950/60 border border-slate-800 rounded-xl text-xs flex items-center justify-between">
-                    <div>
-                        <span class="font-bold text-white block">SOP-BACKUP-03</span>
-                        <span class="text-slate-400 text-[11px]">Prosedur Backup & Restore Data OPD</span>
-                    </div>
-                    <span class="text-[10px] px-2 py-0.5 rounded bg-blue-500/20 text-blue-300">PDF</span>
-                </div>
+            <div class="flex items-center justify-between">
+                <h2 class="font-bold text-white text-base">Berkas SOP & Regulasi</h2>
+                <button onclick="document.getElementById('uploadDocModal').classList.remove('hidden')" class="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-blue-400 rounded-lg text-xs font-semibold transition cursor-pointer">
+                    + Upload
+                </button>
             </div>
+            
+            <div class="bg-slate-900/80 border border-slate-800/80 rounded-2xl p-5 space-y-3">
+                @forelse($documents as $doc)
+                <div class="p-3 bg-slate-950/60 border border-slate-800 rounded-xl text-xs flex items-center justify-between group">
+                    <div>
+                        <span class="font-bold text-white block">{{ $doc->document_code }}</span>
+                        <span class="text-slate-400 text-[11px]">{{ $doc->title }}</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-[10px] px-2 py-0.5 rounded bg-blue-500/20 text-blue-300">{{ strtoupper(pathinfo($doc->file_path, PATHINFO_EXTENSION)) }}</span>
+                        
+                        <div class="hidden group-hover:flex items-center gap-1">
+                            <a href="{{ route('documents.download', $doc) }}" class="p-1 text-slate-400 hover:text-blue-400" title="Download">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                            </a>
+                            <form action="{{ route('documents.destroy', $doc) }}" method="POST" onsubmit="return confirm('Hapus dokumen ini?');">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="p-1 text-slate-400 hover:text-rose-400" title="Hapus">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                @empty
+                <div class="text-center text-slate-500 text-xs py-4">Belum ada dokumen yang diunggah.</div>
+                @endforelse
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Upload Document -->
+    <div id="uploadDocModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h3 class="text-base font-bold text-white">Upload Dokumen SOP</h3>
+                <button type="button" onclick="document.getElementById('uploadDocModal').classList.add('hidden')" class="text-slate-400 hover:text-white cursor-pointer">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+
+            <form action="{{ route('documents.store') }}" method="POST" enctype="multipart/form-data" class="space-y-4 text-xs">
+                @csrf
+                <div>
+                    <label class="block text-slate-300 font-medium mb-1">Judul Dokumen *</label>
+                    <input type="text" name="title" required class="w-full px-3 py-2 bg-slate-950/60 border border-slate-700/80 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="e.g. SOP Penanganan Insiden">
+                </div>
+                <div>
+                    <label class="block text-slate-300 font-medium mb-1">Kategori *</label>
+                    <input type="text" name="category" required class="w-full px-3 py-2 bg-slate-950/60 border border-slate-700/80 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="e.g. SOP, Panduan, Regulasi">
+                </div>
+                <div>
+                    <label class="block text-slate-300 font-medium mb-1">File Dokumen * (Max 10MB)</label>
+                    <input type="file" name="file" required accept=".pdf,.doc,.docx,.xls,.xlsx" class="w-full px-3 py-2 bg-slate-950/60 border border-slate-700/80 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
+                    <button type="button" onclick="document.getElementById('uploadDocModal').classList.add('hidden')" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-medium cursor-pointer">Batal</button>
+                    <button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-semibold cursor-pointer">Upload</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>

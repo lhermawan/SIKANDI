@@ -105,6 +105,9 @@ Route::middleware('auth')->group(function () {
 
     // Knowledge Base & Documentation
     Route::resource('knowledge', KnowledgeController::class);
+    Route::post('/documents', [KnowledgeController::class, 'storeDocument'])->name('documents.store');
+    Route::get('/documents/{document}/download', [KnowledgeController::class, 'downloadDocument'])->name('documents.download');
+    Route::delete('/documents/{document}', [KnowledgeController::class, 'destroyDocument'])->name('documents.destroy');
 
     // Administration (Roles & OPD)
     Route::prefix('admin')->name('admin.')->group(function () {
