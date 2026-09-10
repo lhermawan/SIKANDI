@@ -49,4 +49,23 @@ class OrganizationController extends Controller
 
         return back()->with('success', "OPD {$org->name} berhasil ditambahkan.");
     }
+
+    public function update(Request $request, Organization $organization): RedirectResponse
+    {
+        $validated = $request->validate([
+            'code' => 'required|string|unique:organizations,code,' . $organization->id,
+            'name' => 'required|string|max:255',
+            'category' => 'required|in:dinas,badan,kecamatan,bagian_setda,rsud,lainnya',
+            'address' => 'nullable|string',
+            'phone' => 'nullable|string|max:50',
+            'email' => 'nullable|email',
+            'website_url' => 'nullable|url',
+            'head_name' => 'nullable|string|max:255',
+            'head_nip' => 'nullable|string|max:50',
+        ]);
+
+        $organization->update($validated);
+
+        return back()->with('success', "OPD {$organization->name} berhasil diperbarui.");
+    }
 }

@@ -78,6 +78,7 @@
                         <th class="py-3 px-4 font-semibold text-center">Relasi CMDB</th>
                         <th class="py-3 px-4 font-semibold text-center">Aset IT</th>
                         <th class="py-3 px-4 font-semibold text-center">User</th>
+                        <th class="py-3 px-4 font-semibold text-center">Aksi</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-800/60 text-slate-300">
@@ -120,6 +121,11 @@
                                 <span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                                     {{ $org->users_count }}
                                 </span>
+                            </td>
+                            <td class="py-3 px-4 text-center">
+                                <button onclick="openEditModal({{ htmlspecialchars(json_encode($org)) }})" class="text-blue-400 hover:text-blue-300 transition text-[11px] font-semibold bg-blue-500/10 px-3 py-1.5 rounded-lg border border-blue-500/20">
+                                    Edit
+                                </button>
                             </td>
                         </tr>
                     @empty
@@ -215,5 +221,98 @@
             </form>
         </div>
     </div>
+    <!-- Modal Edit Organisasi -->
+    <div id="editOrgModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h3 class="text-base font-bold text-white">Edit OPD / Unit Kerja</h3>
+                <button type="button" onclick="document.getElementById('editOrgModal').classList.add('hidden')" class="text-slate-400 hover:text-white cursor-pointer">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+
+            <form id="editOrgForm" action="" method="POST" class="space-y-4 text-xs">
+                @csrf
+                @method('PUT')
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                        <label class="block text-slate-300 font-medium mb-1">Kode Singkat *</label>
+                        <input type="text" id="edit_code" name="code" required class="w-full px-3 py-2 bg-slate-950/60 border border-slate-700/80 rounded-xl text-white uppercase focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div class="sm:col-span-2">
+                        <label class="block text-slate-300 font-medium mb-1">Nama Resmi OPD *</label>
+                        <input type="text" id="edit_name" name="name" required class="w-full px-3 py-2 bg-slate-950/60 border border-slate-700/80 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-slate-300 font-medium mb-1">Kategori Instansi *</label>
+                        <select id="edit_category" name="category" required class="w-full px-3 py-2 bg-slate-950/60 border border-slate-700/80 rounded-xl text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="dinas">Dinas</option>
+                            <option value="badan">Badan</option>
+                            <option value="bagian_setda">Bagian Setda</option>
+                            <option value="rsud">RSUD</option>
+                            <option value="kecamatan">Kecamatan</option>
+                            <option value="lainnya">Lainnya</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-slate-300 font-medium mb-1">Website URL</label>
+                        <input type="url" id="edit_website_url" name="website_url" class="w-full px-3 py-2 bg-slate-950/60 border border-slate-700/80 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-slate-300 font-medium mb-1">Nama Kepala OPD / Pejabat</label>
+                        <input type="text" id="edit_head_name" name="head_name" class="w-full px-3 py-2 bg-slate-950/60 border border-slate-700/80 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-slate-300 font-medium mb-1">NIP Kepala OPD</label>
+                        <input type="text" id="edit_head_nip" name="head_nip" class="w-full px-3 py-2 bg-slate-950/60 border border-slate-700/80 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-slate-300 font-medium mb-1">Email Resmi</label>
+                        <input type="email" id="edit_email" name="email" class="w-full px-3 py-2 bg-slate-950/60 border border-slate-700/80 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-slate-300 font-medium mb-1">No. Telp Kantor</label>
+                        <input type="text" id="edit_phone" name="phone" class="w-full px-3 py-2 bg-slate-950/60 border border-slate-700/80 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-slate-300 font-medium mb-1">Alamat Kantor</label>
+                    <textarea id="edit_address" name="address" rows="2" class="w-full px-3 py-2 bg-slate-950/60 border border-slate-700/80 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                </div>
+
+                <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
+                    <button type="button" onclick="document.getElementById('editOrgModal').classList.add('hidden')" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-medium cursor-pointer">Batal</button>
+                    <button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-semibold shadow-md shadow-blue-600/30 cursor-pointer">Simpan Perubahan</button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
+
+<script>
+    function openEditModal(org) {
+        document.getElementById('editOrgForm').action = `/admin/organizations/${org.id}`;
+        document.getElementById('edit_code').value = org.code || '';
+        document.getElementById('edit_name').value = org.name || '';
+        document.getElementById('edit_category').value = org.category || 'dinas';
+        document.getElementById('edit_website_url').value = org.website_url || '';
+        document.getElementById('edit_head_name').value = org.head_name || '';
+        document.getElementById('edit_head_nip').value = org.head_nip || '';
+        document.getElementById('edit_email').value = org.email || '';
+        document.getElementById('edit_phone').value = org.phone || '';
+        document.getElementById('edit_address').value = org.address || '';
+        
+        document.getElementById('editOrgModal').classList.remove('hidden');
+    }
+</script>
 @endsection
