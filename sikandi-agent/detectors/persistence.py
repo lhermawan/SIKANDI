@@ -1,0 +1,2 @@
+class PersistenceDetector:
+    pass

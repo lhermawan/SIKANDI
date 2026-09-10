@@ -1,0 +1,2 @@
+class BruteForceDetector:
+    pass

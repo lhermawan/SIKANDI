@@ -1,0 +1,2 @@
+class RiskScorer:
+    pass

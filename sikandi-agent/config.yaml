@@ -1,0 +1,30 @@
+agent:
+  heartbeat_interval: 60
+  metrics_interval: 60
+  security_interval: 10
+
+api:
+  url: "http://localhost:8000/api/v1/agent"
+  token: "MASUKKAN_TOKEN_ANDA_DISINI"
+  timeout: 10
+
+security:
+  enabled: true
+  brute_force:
+    enabled: true
+    window_seconds: 300
+    threshold: 5
+  suspicious_login:
+    enabled: true
+  process_monitoring:
+    enabled: true
+  network_monitoring:
+    enabled: true
+  file_integrity:
+    enabled: true
+  persistence:
+    enabled: true
+
+queue:
+  enabled: true
+  max_size: 10000
