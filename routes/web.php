@@ -84,16 +84,25 @@ Route::middleware('auth')->group(function () {
 
     // Security & CSIRT Incidents
     Route::prefix('security')->name('security.')->group(function () {
-        Route::get('/incidents', [SecurityIncidentController::class, 'index'])->name('incidents');
-        Route::get('/incidents/create', [SecurityIncidentController::class, 'create'])->name('incidents.create');
-        Route::post('/incidents', [SecurityIncidentController::class, 'store'])->name('incidents.store');
-        Route::post('/incidents/{incident}/workflow', [SecurityIncidentController::class, 'updateWorkflow'])->name('incidents.workflow');
+        Route::get('/logs', [\App\Http\Controllers\SecurityLogController::class, 'index'])->name('logs.index');
+        Route::get('/logs/{event}', [\App\Http\Controllers\SecurityLogController::class, 'show'])->name('logs.show');
 
-        // Risk Management & Matrix
-        Route::get('/risks', [RiskController::class, 'index'])->name('risks');
-        Route::get('/risks/create', [RiskController::class, 'create'])->name('risks.create');
-        Route::post('/risks', [RiskController::class, 'store'])->name('risks.store');
-        Route::post('/risks/{risk}/treatment', [RiskController::class, 'storeTreatment'])->name('risks.treatment');
+        // Existing Incident routes
+        Route::get('/incidents', [\App\Http\Controllers\SecurityIncidentController::class, 'index'])->name('incidents.index');
+        Route::get('/incidents/create', [\App\Http\Controllers\SecurityIncidentController::class, 'create'])->name('incidents.create');
+        Route::post('/incidents', [\App\Http\Controllers\SecurityIncidentController::class, 'store'])->name('incidents.store');
+        Route::get('/incidents/{incident}', [\App\Http\Controllers\SecurityIncidentController::class, 'show'])->name('incidents.show');
+        Route::post('/incidents/{incident}/workflow', [\App\Http\Controllers\SecurityIncidentController::class, 'updateWorkflow'])->name('incidents.workflow');
+
+        // Rules
+        Route::get('/rules', [\App\Http\Controllers\SecurityRuleController::class, 'index'])->name('rules.index');
+        Route::post('/rules/{rule}/toggle', [\App\Http\Controllers\SecurityRuleController::class, 'toggle'])->name('rules.toggle');
+
+        Route::get('/risks', [\App\Http\Controllers\RiskController::class, 'index'])->name('risks.index');
+        Route::get('/risks/create', [\App\Http\Controllers\RiskController::class, 'create'])->name('risks.create');
+        Route::post('/risks', [\App\Http\Controllers\RiskController::class, 'store'])->name('risks.store');
+        Route::get('/risks/{risk}', [\App\Http\Controllers\RiskController::class, 'show'])->name('risks.show');
+        Route::post('/risks/{risk}/treatment', [\App\Http\Controllers\RiskController::class, 'storeTreatment'])->name('risks.treatment');
     });
 
     // IKASANDI (Indikator Keamanan Informasi OPD)

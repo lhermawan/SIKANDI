@@ -60,6 +60,12 @@ class SecurityIncidentController extends Controller
         return redirect()->route('security.incidents')->with('success', "Insiden Keamanan {$incident->incident_code} berhasil dilaporkan ke CSIRT.");
     }
 
+    public function show(SecurityIncident $incident): View
+    {
+        $incident->load(['organization', 'configurationItem', 'reporter', 'assignedLead', 'events', 'agent']);
+        return view('security.incidents-show', compact('incident'));
+    }
+
     public function updateWorkflow(Request $request, SecurityIncident $incident): RedirectResponse
     {
         $validated = $request->validate([

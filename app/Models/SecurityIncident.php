@@ -30,12 +30,16 @@ class SecurityIncident extends Model
         'recovery_actions',
         'evidence_file_path',
         'closed_at',
+        'risk_score', 'source_ip', 'username', 'detection_rule',
+        'first_seen_at', 'last_seen_at', 'agent_id', 'edr_status',
     ];
 
     protected function casts(): array
     {
         return [
             'closed_at' => 'datetime',
+            'first_seen_at' => 'datetime',
+            'last_seen_at' => 'datetime',
         ];
     }
 
@@ -66,5 +70,15 @@ class SecurityIncident extends Model
     public function assignedLead(): BelongsTo
     {
         return $this->belongsTo(User::class, 'assigned_lead_id');
+    }
+
+    public function events()
+    {
+        return $this->hasMany(SecurityEvent::class, 'incident_id');
+    }
+
+    public function agent(): BelongsTo
+    {
+        return $this->belongsTo(Agent::class);
     }
 }

@@ -129,6 +129,14 @@ class AgentApiController extends Controller
             'payload' => 'nullable|array',
         ]);
 
+        if ($request->type === 'security_event' && isset($request->payload)) {
+            // Process via Detection Engine
+            $engine = new \App\Services\SecurityDetectionEngine();
+            $engine->processEvent($agent, $request->payload);
+            return response()->json(['message' => 'Security Event recorded']);
+        }
+
+        // Generic Agent Event
         $event = AgentEvent::create([
             'agent_id' => $agent->id,
             'type' => $request->type,

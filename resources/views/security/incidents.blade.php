@@ -33,6 +33,7 @@
                         <th class="py-3 px-4">OPD Korban</th>
                         <th class="py-3 px-4">CI Terkait</th>
                         <th class="py-3 px-4">Tingkat Keparahan</th>
+                        <th class="py-3 px-4">Risk Score</th>
                         <th class="py-3 px-4">Alur Kerja (Workflow)</th>
                         <th class="py-3 px-4 text-right">Aksi</th>
                     </tr>
@@ -43,10 +44,13 @@
                             <td class="py-3.5 px-4 font-mono font-bold text-rose-400">
                                 {{ $sec->incident_code }}
                             </td>
-                            <td class="py-3.5 px-4">
-                                <p class="font-semibold text-white text-sm">{{ $sec->title }}</p>
-                                <span class="px-2 py-0.2 rounded text-[10px] bg-slate-800 text-slate-300 border border-slate-700 uppercase font-semibold">
-                                    {{ str_replace('_', ' ', $sec->incident_type) }}
+                            <td class="py-3.5 px-4 max-w-xs truncate">
+                                <a href="{{ route('security.incidents.show', $sec) }}" class="text-slate-200 font-medium hover:text-blue-400 block truncate">
+                                    {{ $sec->title }}
+                                </a>
+                                <span class="text-xs text-slate-500 block truncate">
+                                    {{ str_replace('_', ' ', strtoupper($sec->incident_type)) }} 
+                                    @if($sec->detection_rule) • Rule: {{ $sec->detection_rule }} @endif
                                 </span>
                             </td>
                             <td class="py-3.5 px-4">
@@ -67,6 +71,11 @@
                                     @elseif($sec->severity === 'high') bg-orange-500/20 text-orange-300
                                     @else bg-yellow-500/20 text-yellow-300 @endif">
                                     {{ $sec->severity }}
+                                </span>
+                            </td>
+                            <td class="py-3.5 px-4">
+                                <span class="font-mono text-xs {{ $sec->risk_score >= 80 ? 'text-rose-400' : ($sec->risk_score >= 50 ? 'text-orange-400' : 'text-emerald-400') }}">
+                                    {{ $sec->risk_score ?? 0 }}
                                 </span>
                             </td>
                             <td class="py-3.5 px-4">
