@@ -98,8 +98,13 @@
                         <td class="px-6 py-4 text-slate-400 text-sm">
                             {{ $agent->last_seen_at ? $agent->last_seen_at->diffForHumans() : '-' }}
                         </td>
-                        <td class="px-6 py-4 text-right space-x-2">
+                        <td class="px-6 py-4 text-right flex items-center justify-end gap-3">
                             <a href="{{ route('agents.show', $agent) }}" class="text-blue-400 hover:text-blue-300 text-sm font-medium">Detail</a>
+                            <form action="{{ route('agents.destroy', $agent) }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menghapus agent {{ $agent->hostname }} beserta seluruh data historisnya?');" class="inline-block">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="text-rose-400 hover:text-rose-300 text-sm font-medium">Hapus</button>
+                            </form>
                         </td>
                     </tr>
                 @empty

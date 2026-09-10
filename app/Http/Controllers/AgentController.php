@@ -69,4 +69,16 @@ class AgentController extends Controller
         );
         return back()->with('success', 'New Registration Token generated.');
     }
+
+    public function destroy(Agent $agent)
+    {
+        // Revoke tokens just in case
+        $agent->tokens()->delete();
+        
+        // Due to foreign keys, relationships like metrics, services, and events might need to be deleted
+        // but if cascade deletes are setup in DB, this is sufficient.
+        $agent->delete();
+
+        return redirect()->route('agents.index')->with('success', 'Agent beserta data historisnya berhasil dihapus.');
+    }
 }

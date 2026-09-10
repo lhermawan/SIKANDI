@@ -74,13 +74,17 @@ class ApiClient:
     def send_metrics(self, metrics):
         try:
             requests.post(f"{self.base_url}/metrics", headers=self._headers(), json=metrics, timeout=self.timeout)
-            logger.info("Metrics sent.")
+            cpu = metrics.get('cpu_usage', 0)
+            ram = metrics.get('memory_usage', 0)
+            logger.info(f"Metrics sent: CPU {cpu}% | RAM {ram}%")
         except Exception as e:
             logger.error(f"Metrics failed: {e}")
 
     def send_services(self, services):
         try:
             requests.post(f"{self.base_url}/services", headers=self._headers(), json={"services": services}, timeout=self.timeout)
+            names = [s['name'] for s in services] if services else []
+            logger.info(f"Services status sent: {', '.join(names)}")
         except Exception as e:
             logger.error(f"Services failed: {e}")
             

@@ -125,5 +125,6 @@ Route::middleware('auth')->group(function () {
     Route::post('/agents/{agent}/approve', [\App\Http\Controllers\AgentController::class, 'approve'])->name('agents.approve');
     Route::post('/agents/{agent}/revoke', [\App\Http\Controllers\AgentController::class, 'revoke'])->name('agents.revoke');
     Route::post('/agents/{agent}/link', [\App\Http\Controllers\AgentController::class, 'link'])->name('agents.link');
+    Route::delete('/agents/{agent}', [\App\Http\Controllers\AgentController::class, 'destroy'])->name('agents.destroy');
     Route::post('/agents/registration-token', [\App\Http\Controllers\AgentController::class, 'generateRegistrationToken'])->name('agents.token');
 });
