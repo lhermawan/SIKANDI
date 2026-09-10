@@ -43,5 +43,14 @@ Route::prefix('v1')->group(function () {
 
         // Risk Register
         Route::get('/risks', [ApiController::class, 'risks']);
+        
+        // Agent Communication
+        Route::post('/agent/heartbeat', [\App\Http\Controllers\Api\V1\AgentApiController::class, 'heartbeat']);
+        Route::post('/agent/metrics', [\App\Http\Controllers\Api\V1\AgentApiController::class, 'metrics']);
+        Route::post('/agent/services', [\App\Http\Controllers\Api\V1\AgentApiController::class, 'services']);
+        Route::post('/agent/events', [\App\Http\Controllers\Api\V1\AgentApiController::class, 'events']);
     });
+
+    // Agent Registration (using static or UI-generated token, checked inside controller)
+    Route::post('/agent/register', [\App\Http\Controllers\Api\V1\AgentApiController::class, 'register']);
 });

@@ -71,7 +71,7 @@ Route::middleware('auth')->group(function () {
 
     // Website & SSL Monitoring
     Route::get('/monitoring/websites', [MonitoringController::class, 'websites'])->name('monitoring.websites');
-    Route::post('/monitoring/websites/{website}/check', [MonitoringController::class, 'check'])->name('monitoring.check');
+    Route::post('/monitoring/websites/{website}/check', [MonitoringController::class, 'check'])->name('monitoring.websites.check');
 
     // Incident Management
     Route::get('/incidents', [IncidentController::class, 'index'])->name('incidents.index');
@@ -113,4 +113,12 @@ Route::middleware('auth')->group(function () {
         Route::post('/organizations', [OrganizationController::class, 'store'])->name('organizations.store');
         Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('audit-logs');
     });
+
+    // Agents
+    Route::get('/agents', [\App\Http\Controllers\AgentController::class, 'index'])->name('agents.index');
+    Route::get('/agents/{agent}', [\App\Http\Controllers\AgentController::class, 'show'])->name('agents.show');
+    Route::post('/agents/{agent}/approve', [\App\Http\Controllers\AgentController::class, 'approve'])->name('agents.approve');
+    Route::post('/agents/{agent}/revoke', [\App\Http\Controllers\AgentController::class, 'revoke'])->name('agents.revoke');
+    Route::post('/agents/{agent}/link', [\App\Http\Controllers\AgentController::class, 'link'])->name('agents.link');
+    Route::post('/agents/registration-token', [\App\Http\Controllers\AgentController::class, 'generateRegistrationToken'])->name('agents.token');
 });

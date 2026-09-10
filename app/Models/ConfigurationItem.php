@@ -157,4 +157,9 @@ class ConfigurationItem extends Model
 
         return $outbound->concat($inbound);
     }
+
+    public function agent(): HasOne
+    {
+        return $this->hasOne(Agent::class, 'ci_id');
+    }
 }

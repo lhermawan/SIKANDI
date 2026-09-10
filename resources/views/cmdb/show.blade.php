@@ -202,8 +202,62 @@
             </div>
 
             <!-- 3. Monitoring Information -->
+            @if($cmdb->agent)
+                <div class="bg-slate-900/80 border border-slate-800/80 rounded-2xl p-5 mb-6">
+                    <div class="flex items-center justify-between mb-4 pb-2 border-b border-slate-800">
+                        <h2 class="font-bold text-white text-sm flex items-center gap-2">
+                            <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"/></svg>
+                            <span>Server Agent Health Monitoring</span>
+                        </h2>
+                        @if($cmdb->agent->status === 'online')
+                            <span class="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 text-[10px] font-bold uppercase border border-emerald-500/20">Agent Online</span>
+                        @else
+                            <span class="px-2 py-0.5 rounded bg-slate-800 text-slate-400 text-[10px] font-bold uppercase border border-slate-700">Agent {{ $cmdb->agent->status }}</span>
+                        @endif
+                    </div>
+                    
+                    <div class="grid grid-cols-3 gap-4 mb-4">
+                        @php $latestMetric = $cmdb->agent->metrics()->latest()->first(); @endphp
+                        <div class="p-3 bg-slate-950/60 border border-slate-800 rounded-xl">
+                            <span class="text-slate-500 block text-[10px]">CPU Usage</span>
+                            <span class="text-xl font-bold {{ ($latestMetric->cpu_usage ?? 0) > 80 ? 'text-rose-400' : 'text-emerald-400' }}">
+                                {{ $latestMetric ? number_format($latestMetric->cpu_usage, 1) : 0 }}%
+                            </span>
+                        </div>
+                        <div class="p-3 bg-slate-950/60 border border-slate-800 rounded-xl">
+                            <span class="text-slate-500 block text-[10px]">Memory Usage</span>
+                            <span class="text-xl font-bold {{ ($latestMetric->memory_usage ?? 0) > 80 ? 'text-rose-400' : 'text-blue-400' }}">
+                                {{ $latestMetric ? number_format($latestMetric->memory_usage, 1) : 0 }}%
+                            </span>
+                        </div>
+                        <div class="p-3 bg-slate-950/60 border border-slate-800 rounded-xl">
+                            <span class="text-slate-500 block text-[10px]">Disk Usage</span>
+                            <span class="text-xl font-bold {{ ($latestMetric->disk_usage ?? 0) > 80 ? 'text-rose-400' : 'text-amber-400' }}">
+                                {{ $latestMetric ? number_format($latestMetric->disk_usage, 1) : 0 }}%
+                            </span>
+                        </div>
+                    </div>
+                    
+                    @if($cmdb->agent->services->count() > 0)
+                        <div class="border-t border-slate-800 pt-3">
+                            <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-2">Monitored Services</span>
+                            <div class="flex flex-wrap gap-2">
+                                @foreach($cmdb->agent->services as $svc)
+                                    <span class="text-[10px] px-2 py-1 rounded-lg border {{ strtolower($svc->status) === 'running' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20' }}">
+                                        {{ $svc->service_name }}: {{ $svc->status }}
+                                    </span>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
+                    <div class="mt-3 text-right">
+                        <a href="{{ route('agents.show', $cmdb->agent) }}" class="text-xs text-blue-400 hover:underline">Kelola Agent &rarr;</a>
+                    </div>
+                </div>
+            @endif
+
             @if($cmdb->website)
-                <div class="bg-slate-900/80 border border-slate-800/80 rounded-2xl p-5">
+                <div class="bg-slate-900/80 border border-slate-800/80 rounded-2xl p-5 mb-6">
                     <h2 class="font-bold text-white text-sm mb-4 flex items-center gap-2 pb-2 border-b border-slate-800">
                         <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
                         <span>Website & SSL Health Monitoring</span>
