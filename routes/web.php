@@ -90,6 +90,12 @@ Route::middleware('auth')->group(function () {
         Route::post('/incidents', [\App\Http\Controllers\SecurityIncidentController::class, 'store'])->name('incidents.store');
         Route::get('/incidents/{incident}', [\App\Http\Controllers\SecurityIncidentController::class, 'show'])->name('incidents.show');
         Route::post('/incidents/{incident}/workflow', [\App\Http\Controllers\SecurityIncidentController::class, 'updateWorkflow'])->name('incidents.workflow');
+        Route::post('/incidents/{incident}/tasks', [\App\Http\Controllers\SecurityIncidentController::class, 'storeTask'])->name('incidents.tasks.store');
+        Route::post('/incidents/{incident}/tasks/{task}/toggle', [\App\Http\Controllers\SecurityIncidentController::class, 'toggleTask'])->name('incidents.tasks.toggle');
+        Route::post('/incidents/{incident}/responses', [\App\Http\Controllers\SecurityIncidentController::class, 'storeResponse'])->name('incidents.responses.store');
+        Route::post('/incidents/{incident}/evidence', [\App\Http\Controllers\SecurityIncidentController::class, 'storeEvidence'])->name('incidents.evidence.store');
+        Route::post('/incidents/{incident}/resolve', [\App\Http\Controllers\SecurityIncidentController::class, 'resolve'])->name('incidents.resolve');
+        Route::post('/incidents/{incident}/assign', [\App\Http\Controllers\SecurityIncidentController::class, 'assign'])->name('incidents.assign');
         Route::delete('/incidents/{incident}', [\App\Http\Controllers\SecurityIncidentController::class, 'destroy'])->name('incidents.destroy');
 
         // Rules

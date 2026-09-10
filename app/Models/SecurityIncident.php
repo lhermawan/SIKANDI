@@ -32,6 +32,9 @@ class SecurityIncident extends Model
         'closed_at',
         'risk_score', 'source_ip', 'username', 'detection_rule',
         'first_seen_at', 'last_seen_at', 'agent_id', 'edr_status',
+        // SOC new fields
+        'target_type', 'target_value', 'detected_at', 'contained_at', 
+        'resolved_at', 'resolution_type', 'resolution_summary', 'root_cause'
     ];
 
     protected function casts(): array
@@ -40,6 +43,9 @@ class SecurityIncident extends Model
             'closed_at' => 'datetime',
             'first_seen_at' => 'datetime',
             'last_seen_at' => 'datetime',
+            'detected_at' => 'datetime',
+            'contained_at' => 'datetime',
+            'resolved_at' => 'datetime',
         ];
     }
 
@@ -80,5 +86,31 @@ class SecurityIncident extends Model
     public function agent(): BelongsTo
     {
         return $this->belongsTo(Agent::class);
+    }
+
+    // SOC Relationships
+    public function tasks()
+    {
+        return $this->hasMany(SecurityIncidentTask::class, 'incident_id');
+    }
+
+    public function evidence()
+    {
+        return $this->hasMany(SecurityIncidentEvidence::class, 'incident_id');
+    }
+
+    public function responses()
+    {
+        return $this->hasMany(SecurityIncidentResponse::class, 'incident_id');
+    }
+
+    public function assignments()
+    {
+        return $this->hasMany(SecurityIncidentAssignment::class, 'incident_id');
+    }
+
+    public function socAuditLogs()
+    {
+        return $this->hasMany(SecurityIncidentAuditLog::class, 'incident_id');
     }
 }
