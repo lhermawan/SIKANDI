@@ -60,11 +60,50 @@ class SikandiAgent:
             time.sleep(self.config.get('agent.metrics_interval', 60))
 
     def _security_loop(self):
+        # Initialize collectors/detectors
+        from collectors.login_events import LoginCollector
+        from collectors.processes import ProcessCollector
+        from collectors.network import NetworkCollector
+        from collectors.file_integrity import FIMCollector
+        from detectors.brute_force import BruteForceDetector
+        from detectors.suspicious_process import SuspiciousProcessDetector
+        from security.risk_score import RiskScorer
+        
+        login_coll = LoginCollector()
+        proc_coll = ProcessCollector()
+        fim_coll = FIMCollector(self.config)
+        
+        brute_det = BruteForceDetector(self.config)
+        proc_det = SuspiciousProcessDetector()
+        scorer = RiskScorer()
+        
         while True:
-            # Here we would call various detectors
-            # For test mode, we generate mock events
             if self.test_mode:
                 self._run_test_mode()
+            else:
+                try:
+                    events = []
+                    # 1. Collect
+                    logins = login_coll.collect()
+                    events.extend(logins)
+                    
+                    procs = proc_coll.collect()
+                    
+                    fims = fim_coll.collect()
+                    events.extend(fims)
+                    
+                    # 2. Detect
+                    events.extend(brute_det.analyze(logins))
+                    events.extend(proc_det.analyze(procs))
+                    
+                    # 3. Score & Queue
+                    for ev in events:
+                        ev = scorer.calculate(ev)
+                        if not self.deduplicator.is_duplicate(ev):
+                            self.queue.add(ev)
+                except Exception as e:
+                    logger.error(f"Security loop error: {e}")
+                    
             time.sleep(self.config.get('agent.security_interval', 10))
             
     def _queue_flush_loop(self):
