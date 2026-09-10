@@ -1,6 +1,6 @@
 <?php
 // Set storage path to /tmp for Vercel serverless environment
-if (isset($_ENV['VERCEL'])) {
+if (isset($_ENV['VERCEL']) || getenv('VERCEL')) {
     putenv('APP_CONFIG_CACHE=/tmp/config.php');
     putenv('APP_EVENTS_CACHE=/tmp/events.php');
     putenv('APP_PACKAGES_CACHE=/tmp/packages.php');
@@ -12,12 +12,18 @@ if (isset($_ENV['VERCEL'])) {
     putenv('LOG_CHANNEL=stderr');
     
     // Create necessary directories in /tmp
-    $tmpDirectories = ['/tmp/framework/views', '/tmp/framework/cache', '/tmp/framework/sessions'];
+    $tmpDirectories = ['/tmp/framework/views', '/tmp/framework/cache', '/tmp/framework/sessions', '/tmp/logs'];
     foreach ($tmpDirectories as $dir) {
         if (!is_dir($dir)) {
             mkdir($dir, 0777, true);
         }
     }
+    
+    // Copy SQLite DB to /tmp so it's writable
+    if (!file_exists('/tmp/database.sqlite')) {
+        copy(__DIR__ . '/../database/database.sqlite', '/tmp/database.sqlite');
+    }
+    putenv('DB_DATABASE=/tmp/database.sqlite');
 }
 
 require __DIR__ . '/../public/index.php';
