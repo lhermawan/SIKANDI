@@ -1,0 +1,70 @@
+<?php
+
+namespace App\Models;
+
+use App\Traits\GeneratesUniqueCode;
+use App\Traits\HasAuditLog;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
+
+class SecurityIncident extends Model
+{
+    use GeneratesUniqueCode, HasAuditLog, HasFactory, SoftDeletes;
+
+    protected $fillable = [
+        'incident_code',
+        'title',
+        'incident_type',
+        'severity',
+        'workflow_status',
+        'organization_id',
+        'ci_id',
+        'reporter_id',
+        'assigned_lead_id',
+        'description',
+        'attack_vector',
+        'impact_summary',
+        'containment_actions',
+        'recovery_actions',
+        'evidence_file_path',
+        'closed_at',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'closed_at' => 'datetime',
+        ];
+    }
+
+    protected static function booted(): void
+    {
+        static::creating(function (SecurityIncident $incident) {
+            if (empty($incident->incident_code)) {
+                $incident->incident_code = static::generateCode('SEC', 'incident_code', 4, true);
+            }
+        });
+    }
+
+    public function organization(): BelongsTo
+    {
+        return $this->belongsTo(Organization::class);
+    }
+
+    public function configurationItem(): BelongsTo
+    {
+        return $this->belongsTo(ConfigurationItem::class, 'ci_id');
+    }
+
+    public function reporter(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'reporter_id');
+    }
+
+    public function assignedLead(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'assigned_lead_id');
+    }
+}
