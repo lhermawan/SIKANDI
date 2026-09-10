@@ -161,4 +161,10 @@ class AssetController extends Controller
 
         return view('itam.scan', compact('asset'));
     }
+
+    public function destroy(Asset $asset)
+    {
+        $asset->delete();
+        return back()->with('success', 'Asset berhasil dihapus.');
+    }
 }

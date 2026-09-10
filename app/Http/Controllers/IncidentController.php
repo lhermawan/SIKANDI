@@ -110,4 +110,10 @@ class IncidentController extends Controller
 
         return back()->with('success', 'Catatan investigasi insiden berhasil ditambahkan.');
     }
+
+    public function destroy(Incident $incident)
+    {
+        $incident->delete();
+        return back()->with('success', 'Insiden Service Desk berhasil dihapus.');
+    }
 }

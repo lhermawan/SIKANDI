@@ -92,7 +92,7 @@ class ApiClient:
         try:
             for ev in events:
                 payload = {
-                    "type": ev.get("event_type", "security_event"),
+                    "type": "security_event",
                     "severity": ev.get("severity", "info"),
                     "message": f"Security Event: {ev.get('action')} by {ev.get('username')}",
                     "payload": ev

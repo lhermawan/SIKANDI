@@ -75,11 +75,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/monitoring/websites/{website}/check', [MonitoringController::class, 'check'])->name('monitoring.websites.check');
 
     // Incident Management
-    Route::get('/incidents', [IncidentController::class, 'index'])->name('incidents.index');
-    Route::get('/incidents/create', [IncidentController::class, 'create'])->name('incidents.create');
-    Route::post('/incidents', [IncidentController::class, 'store'])->name('incidents.store');
-    Route::get('/incidents/{incident}', [IncidentController::class, 'show'])->name('incidents.show');
-    Route::put('/incidents/{incident}', [IncidentController::class, 'update'])->name('incidents.update');
+    Route::resource('incidents', \App\Http\Controllers\IncidentController::class)->except(['destroy']);
+    Route::delete('incidents/{incident}', [\App\Http\Controllers\IncidentController::class, 'destroy'])->name('incidents.destroy');
     Route::post('/incidents/{incident}/comment', [IncidentController::class, 'addComment'])->name('incidents.comment');
 
     // Security & CSIRT Incidents
@@ -93,6 +90,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/incidents', [\App\Http\Controllers\SecurityIncidentController::class, 'store'])->name('incidents.store');
         Route::get('/incidents/{incident}', [\App\Http\Controllers\SecurityIncidentController::class, 'show'])->name('incidents.show');
         Route::post('/incidents/{incident}/workflow', [\App\Http\Controllers\SecurityIncidentController::class, 'updateWorkflow'])->name('incidents.workflow');
+        Route::delete('/incidents/{incident}', [\App\Http\Controllers\SecurityIncidentController::class, 'destroy'])->name('incidents.destroy');
 
         // Rules
         Route::get('/rules', [\App\Http\Controllers\SecurityRuleController::class, 'index'])->name('rules.index');

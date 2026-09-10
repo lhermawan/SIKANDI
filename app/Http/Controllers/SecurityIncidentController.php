@@ -83,4 +83,10 @@ class SecurityIncidentController extends Controller
 
         return back()->with('success', 'Alur penanganan insiden siber berhasil diperbarui.');
     }
+
+    public function destroy(SecurityIncident $incident)
+    {
+        $incident->delete();
+        return back()->with('success', 'Insiden Keamanan Siber berhasil dihapus.');
+    }
 }
