@@ -14,7 +14,21 @@
             <h1 class="text-2xl font-bold text-white tracking-tight">Knowledge Base & Repositori SOP</h1>
             <p class="text-xs text-slate-400 mt-0.5">Panduan teknis, pedoman sandi, SOP penanganan insiden, dan petunjuk operasional TIK</p>
         </div>
+        <div>
+            <a href="{{ route('knowledge.create') }}" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold transition flex items-center gap-2 shadow-lg shadow-blue-600/30 cursor-pointer">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                <span>Tambah Artikel</span>
+            </a>
+        </div>
     </div>
+
+    <!-- Feedback messages -->
+    @if(session('success'))
+        <div class="p-4 bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 rounded-xl text-xs flex items-center gap-3">
+            <svg class="w-5 h-5 text-emerald-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <span>{{ session('success') }}</span>
+        </div>
+    @endif
 
     <!-- Search Articles -->
     <div class="bg-slate-900/80 border border-slate-800/80 rounded-2xl p-4">
@@ -39,13 +53,24 @@
 
             <div class="space-y-3">
                 @forelse($articles as $art)
-                    <div class="bg-slate-900/80 border border-slate-800/80 rounded-2xl p-5 hover:border-blue-500/40 transition">
-                        <div class="flex items-center gap-2 mb-2">
-                            <span class="px-2 py-0.5 rounded text-[10px] bg-slate-800 text-cyan-300 font-bold uppercase border border-slate-700">{{ $art->category }}</span>
-                            <span class="text-[11px] text-slate-500">{{ $art->created_at->format('d M Y') }} &bull; Oleh: {{ $art->author->name }}</span>
+                    <div class="bg-slate-900/80 border border-slate-800/80 rounded-2xl p-5 hover:border-blue-500/40 transition flex flex-col justify-between group">
+                        <div>
+                            <div class="flex items-center gap-2 mb-2">
+                                <span class="px-2 py-0.5 rounded text-[10px] bg-slate-800 text-cyan-300 font-bold uppercase border border-slate-700">{{ $art->category }}</span>
+                                <span class="text-[11px] text-slate-500">{{ $art->created_at->format('d M Y') }} &bull; Oleh: {{ $art->author->name }}</span>
+                            </div>
+                            <h3 class="text-base font-bold text-white mb-2">{{ $art->title }}</h3>
+                            <p class="text-xs text-slate-300 leading-relaxed line-clamp-3 mb-4">{{ Str::limit(strip_tags($art->content), 200) }}</p>
                         </div>
-                        <h3 class="text-base font-bold text-white mb-2">{{ $art->title }}</h3>
-                        <p class="text-xs text-slate-300 leading-relaxed line-clamp-3">{{ Str::limit(strip_tags($art->content), 200) }}</p>
+                        
+                        <div class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <a href="{{ route('knowledge.edit', $art) }}" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-[11px] font-medium transition cursor-pointer">Edit</a>
+                            <form action="{{ route('knowledge.destroy', $art) }}" method="POST" onsubmit="return confirm('Hapus artikel ini?');" class="inline-block">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded-lg text-[11px] font-medium transition cursor-pointer">Hapus</button>
+                            </form>
+                        </div>
                     </div>
                 @empty
                     <div class="bg-slate-900/80 border border-slate-800/80 rounded-2xl p-8 text-center text-slate-500 text-xs">

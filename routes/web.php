@@ -104,7 +104,7 @@ Route::middleware('auth')->group(function () {
     });
 
     // Knowledge Base & Documentation
-    Route::get('/knowledge', [KnowledgeController::class, 'index'])->name('knowledge.index');
+    Route::resource('knowledge', KnowledgeController::class);
 
     // Administration (Roles & OPD)
     Route::prefix('admin')->name('admin.')->group(function () {
