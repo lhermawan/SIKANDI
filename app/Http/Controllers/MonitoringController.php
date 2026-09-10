@@ -25,7 +25,24 @@ class MonitoringController extends Controller
             'avg_response_time' => round(Website::where('current_status', 'up')->avg('response_time_ms') ?? 0),
         ];
 
-        return view('monitoring.websites', compact('websites', 'stats'));
+        $organizations = \App\Models\Organization::orderBy('name')->get();
+        $configurationItems = \App\Models\ConfigurationItem::orderBy('name')->get();
+
+        return view('monitoring.websites', compact('websites', 'stats', 'organizations', 'configurationItems'));
+    }
+
+    public function storeWebsite(\Illuminate\Http\Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'url' => 'required|url|max:255',
+            'organization_id' => 'required|exists:organizations,id',
+            'ci_id' => 'required|exists:configuration_items,id',
+        ]);
+
+        $website = Website::create($validated);
+
+        return back()->with('success', "Website {$website->name} berhasil ditambahkan ke monitoring.");
     }
 
     public function check(Website $website): RedirectResponse

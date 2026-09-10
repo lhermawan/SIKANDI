@@ -71,6 +71,7 @@ Route::middleware('auth')->group(function () {
 
     // Website & SSL Monitoring
     Route::get('/monitoring/websites', [MonitoringController::class, 'websites'])->name('monitoring.websites');
+    Route::post('/monitoring/websites', [MonitoringController::class, 'storeWebsite'])->name('monitoring.websites.store');
     Route::post('/monitoring/websites/{website}/check', [MonitoringController::class, 'check'])->name('monitoring.websites.check');
 
     // Incident Management

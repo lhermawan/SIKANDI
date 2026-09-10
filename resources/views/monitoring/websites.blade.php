@@ -14,7 +14,21 @@
             <h1 class="text-2xl font-bold text-white tracking-tight">Website & SSL Health Monitoring</h1>
             <p class="text-xs text-slate-400 mt-0.5">Pemantauan ketersediaan (uptime), latensi response, dan masa berlaku sertifikat SSL portal OPD Ciamis</p>
         </div>
+        <div>
+            <button onclick="document.getElementById('addWebsiteModal').classList.remove('hidden')" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold transition flex items-center gap-2 shadow-lg shadow-blue-600/30 cursor-pointer">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                <span>Tambah Website</span>
+            </button>
+        </div>
     </div>
+
+    <!-- Feedback messages -->
+    @if(session('success'))
+        <div class="p-4 bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 rounded-xl text-xs flex items-center gap-3">
+            <svg class="w-5 h-5 text-emerald-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <span>{{ session('success') }}</span>
+        </div>
+    @endif
 
     <!-- Dashboard Cards (matching Section 13) -->
     <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
@@ -126,6 +140,55 @@
                     @endforelse
                 </tbody>
             </table>
+        </div>
+    </div>
+
+    <!-- Modal Tambah Website -->
+    <div id="addWebsiteModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h3 class="text-base font-bold text-white">Tambah Website ke Monitoring</h3>
+                <button type="button" onclick="document.getElementById('addWebsiteModal').classList.add('hidden')" class="text-slate-400 hover:text-white cursor-pointer">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+
+            <form action="{{ route('monitoring.websites.store') }}" method="POST" class="space-y-4 text-xs">
+                @csrf
+                <div class="grid grid-cols-1 gap-3">
+                    <div>
+                        <label class="block text-slate-300 font-medium mb-1">Nama Website *</label>
+                        <input type="text" name="name" required class="w-full px-3 py-2 bg-slate-950/60 border border-slate-700/80 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="e.g. Website Resmi DINKES">
+                    </div>
+                    <div>
+                        <label class="block text-slate-300 font-medium mb-1">URL (dengan https://) *</label>
+                        <input type="url" name="url" required class="w-full px-3 py-2 bg-slate-950/60 border border-slate-700/80 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="https://dinkes.ciamiskab.go.id">
+                    </div>
+                    <div>
+                        <label class="block text-slate-300 font-medium mb-1">OPD Pengelola *</label>
+                        <select name="organization_id" required class="w-full px-3 py-2 bg-slate-950/60 border border-slate-700/80 rounded-xl text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">-- Pilih OPD --</option>
+                            @foreach($organizations as $org)
+                                <option value="{{ $org->id }}">{{ $org->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-slate-300 font-medium mb-1">Terkait CMDB (CI) *</label>
+                        <select name="ci_id" required class="w-full px-3 py-2 bg-slate-950/60 border border-slate-700/80 rounded-xl text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">-- Pilih Configuration Item --</option>
+                            @foreach($configurationItems as $ci)
+                                <option value="{{ $ci->id }}">[{{ $ci->ci_code }}] {{ $ci->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
+                    <button type="button" onclick="document.getElementById('addWebsiteModal').classList.add('hidden')" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-medium cursor-pointer">Batal</button>
+                    <button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-semibold shadow-md shadow-blue-600/30 cursor-pointer">Simpan Website</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>

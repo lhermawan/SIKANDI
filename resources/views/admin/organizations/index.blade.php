@@ -123,7 +123,7 @@
                                 </span>
                             </td>
                             <td class="py-3 px-4 text-center">
-                                <button onclick="openEditModal({{ htmlspecialchars(json_encode($org)) }})" class="text-blue-400 hover:text-blue-300 transition text-[11px] font-semibold bg-blue-500/10 px-3 py-1.5 rounded-lg border border-blue-500/20">
+                                <button type="button" onclick='openEditModal(@json($org))' class="text-blue-400 hover:text-blue-300 transition text-[11px] font-semibold bg-blue-500/10 px-3 py-1.5 rounded-lg border border-blue-500/20">
                                     Edit
                                 </button>
                             </td>
