@@ -10,7 +10,7 @@ class Config:
         if not os.path.exists(self.path):
             return {
                 'agent': {'heartbeat_interval': 60, 'metrics_interval': 60, 'security_interval': 10},
-                'api': {'url': 'http://localhost:8000/api/v1/agent', 'token': 'MASUKKAN_TOKEN_ANDA_DISINI', 'timeout': 10},
+                'api': {'url': 'http://157.10.157.25:8081/api/v1/agent', 'token': 'MASUKKAN_TOKEN_ANDA_DISINI', 'timeout': 10},
                 'queue': {'max_size': 10000}
             }
         with open(self.path, 'r') as f:
