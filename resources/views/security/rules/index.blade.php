@@ -3,65 +3,69 @@
 @section('title', 'Security Rules')
 
 @section('content')
-<div x-data="{ creating: false }" class="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+<div class="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
     <div>
         <h1 class="text-2xl font-bold text-white tracking-tight">Security Detection Rules</h1>
         <p class="text-sm text-slate-400 mt-1">Konfigurasi threshold dan parameter untuk engine deteksi SIKANDI.</p>
     </div>
-    <button @click="creating = true" class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
+    <button
+        onclick="document.getElementById('modal-create-rule').classList.remove('hidden')"
+        class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition"
+    >
         + Tambah Rule
     </button>
+</div>
 
-    <!-- Create Modal -->
-    <div x-show="creating" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
-        <div @click.away="creating = false" class="bg-slate-900 border border-slate-700 rounded-2xl p-6 shadow-2xl w-full max-w-md">
-            <h2 class="text-lg font-bold text-white mb-4">Tambah Security Rule Baru</h2>
-            <form action="{{ route('security.rules.store') }}" method="POST" class="space-y-4 text-sm">
-                @csrf
+{{-- Create Modal --}}
+<div id="modal-create-rule" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl p-6 shadow-2xl w-full max-w-md">
+        <h2 class="text-lg font-bold text-white mb-4">Tambah Security Rule Baru</h2>
+        <form action="{{ route('security.rules.store') }}" method="POST" class="space-y-4 text-sm">
+            @csrf
+            <div>
+                <label class="block text-xs text-slate-400 mb-1">Nama Rule (Contoh: SUSPICIOUS_LOGIN)</label>
+                <input type="text" name="name" required class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white">
+            </div>
+            <div class="grid grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-xs text-slate-400 mb-1">Nama Rule (Contoh: SUSPICIOUS_LOGIN)</label>
-                    <input type="text" name="name" required class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white">
-                </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs text-slate-400 mb-1">Threshold</label>
-                        <input type="number" name="threshold" value="5" required class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white">
-                    </div>
-                    <div>
-                        <label class="block text-xs text-slate-500 mb-1">Time Window (s)</label>
-                        <input type="number" name="time_window_seconds" value="300" required class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white">
-                    </div>
-                </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs text-slate-500 mb-1">Severity</label>
-                        <select name="severity" required class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white uppercase">
-                            <option value="critical">CRITICAL</option>
-                            <option value="high" selected>HIGH</option>
-                            <option value="medium">MEDIUM</option>
-                            <option value="low">LOW</option>
-                            <option value="info">INFO</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs text-slate-500 mb-1">Risk Bonus (0-100)</label>
-                        <input type="number" name="risk_score" value="25" required class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white">
-                    </div>
+                    <label class="block text-xs text-slate-400 mb-1">Threshold</label>
+                    <input type="number" name="threshold" value="5" required class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white">
                 </div>
                 <div>
-                    <label class="flex items-center gap-2 cursor-pointer">
-                        <input type="checkbox" name="auto_incident" value="1" checked class="rounded border-slate-700 bg-slate-900 text-blue-600 focus:ring-0">
-                        <span class="text-slate-300">Buat Insiden Otomatis</span>
-                    </label>
+                    <label class="block text-xs text-slate-500 mb-1">Time Window (s)</label>
+                    <input type="number" name="time_window_seconds" value="300" required class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white">
                 </div>
-                <div class="flex gap-3 pt-4 mt-4 border-t border-slate-800">
-                    <button type="button" @click="creating = false" class="flex-1 bg-slate-800 hover:bg-slate-700 text-white rounded-lg py-2 font-medium transition">Batal</button>
-                    <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg py-2 font-medium transition">Simpan Rule</button>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs text-slate-500 mb-1">Severity</label>
+                    <select name="severity" required class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white uppercase">
+                        <option value="critical">CRITICAL</option>
+                        <option value="high" selected>HIGH</option>
+                        <option value="medium">MEDIUM</option>
+                        <option value="low">LOW</option>
+                        <option value="info">INFO</option>
+                    </select>
                 </div>
-            </form>
-        </div>
+                <div>
+                    <label class="block text-xs text-slate-500 mb-1">Risk Bonus (0-100)</label>
+                    <input type="number" name="risk_score" value="25" required class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white">
+                </div>
+            </div>
+            <div>
+                <label class="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" name="auto_incident" value="1" checked class="rounded border-slate-700 bg-slate-900 text-blue-600 focus:ring-0">
+                    <span class="text-slate-300">Buat Insiden Otomatis</span>
+                </label>
+            </div>
+            <div class="flex gap-3 pt-4 mt-4 border-t border-slate-800">
+                <button type="button" onclick="document.getElementById('modal-create-rule').classList.add('hidden')" class="flex-1 bg-slate-800 hover:bg-slate-700 text-white rounded-lg py-2 font-medium transition">Batal</button>
+                <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg py-2 font-medium transition">Simpan Rule</button>
+            </div>
+        </form>
     </div>
 </div>
+
 
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
     @foreach($rules as $rule)
