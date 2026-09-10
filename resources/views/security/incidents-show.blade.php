@@ -31,7 +31,7 @@
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
             <h2 class="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-4 border-b border-slate-800 pb-2">Deskripsi & Konteks</h2>
             <div class="prose prose-invert prose-sm max-w-none text-slate-300">
-                <p>{{ $incident->description }}</p>
+                <p>{!! nl2br(e($incident->description)) !!}</p>
             </div>
             
             @if($incident->source_ip || $incident->username || $incident->agent)
