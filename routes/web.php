@@ -132,6 +132,10 @@ Route::middleware('auth')->group(function () {
         Route::post('/organizations', [OrganizationController::class, 'store'])->name('organizations.store');
         Route::put('/organizations/{organization}', [OrganizationController::class, 'update'])->name('organizations.update');
         Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('audit-logs');
+        
+        // Master Data: Lokasi & Ruang
+        Route::resource('locations', \App\Http\Controllers\Admin\LocationController::class)->except(['create', 'show', 'edit']);
+        Route::patch('locations/{location}/toggle', [\App\Http\Controllers\Admin\LocationController::class, 'toggle'])->name('locations.toggle');
     });
 
     // Agents
