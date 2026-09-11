@@ -16,8 +16,12 @@
     
     <div class="flex items-center gap-2">
         @if($agent->status === 'pending')
-            <form action="{{ route('agents.approve', $agent) }}" method="POST">
+            <form action="{{ route('agents.approve', $agent) }}" method="POST" class="flex items-center gap-3">
                 @csrf
+                <label class="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
+                    <input type="checkbox" name="create_ci" value="1" class="w-4 h-4 rounded bg-slate-950 border-slate-700 text-emerald-600 focus:ring-emerald-500">
+                    <span>Buat CMDB Item</span>
+                </label>
                 <button class="bg-emerald-600 hover:bg-emerald-700 text-white text-sm px-4 py-2 rounded-lg font-medium transition">
                     Approve Agent
                 </button>

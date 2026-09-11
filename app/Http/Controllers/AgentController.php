@@ -31,13 +31,31 @@ class AgentController extends Controller
         return view('agents.show', compact('agent', 'latestMetric', 'cis'));
     }
 
-    public function approve(Agent $agent)
+    public function approve(Request $request, Agent $agent)
     {
         $agent->update([
             'status' => 'online',
             'approved_at' => now(),
             'approved_by' => auth()->id()
         ]);
+
+        if ($request->boolean('create_ci')) {
+            $ciType = \App\Models\CiType::where('name', 'like', '%Server%')->orWhere('code', 'SRV')->first();
+            
+            $ci = \App\Models\ConfigurationItem::create([
+                'name' => $agent->hostname ?: 'Server ' . $agent->agent_id,
+                'ci_type_id' => $ciType?->id,
+                'hostname' => $agent->hostname,
+                'ip_address' => $agent->ip_address,
+                'operating_system' => $agent->os,
+                'os_version' => $agent->os_version,
+                'status' => 'active',
+                'environment' => 'production',
+                'description' => 'Automatically created from Agent Approval (' . $agent->agent_id . ')',
+            ]);
+
+            $agent->update(['ci_id' => $ci->id]);
+        }
 
         // Generate token
         $agent->tokens()->delete(); // Remove old tokens if any
