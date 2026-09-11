@@ -247,8 +247,8 @@ class CmdbController extends Controller
      */
     public function graphData(Request $request): JsonResponse
     {
-        $query = ConfigurationItem::with(['ciType', 'organization', 'incidents' => function($q) {
-            $q->whereNotIn('workflow_status', ['closed', 'resolved', 'false_positive']);
+        $query = ConfigurationItem::with(['ciType', 'organization', 'securityIncidents' => function($q) {
+            $q->whereNotIn('workflow_status', ['closed', 'resolved', 'false_positive', 'duplicate']);
         }, 'agent']);
 
         if ($request->filled('type')) {
@@ -263,7 +263,7 @@ class CmdbController extends Controller
 
         $nodes = [];
         foreach ($cis as $ci) {
-            $hasIncidents = $ci->incidents->count() > 0;
+            $hasIncidents = $ci->securityIncidents->count() > 0;
             $agentStatus = $ci->agent ? $ci->agent->status : 'unmanaged';
             
             // Priority styling: If it has incidents, it's compromised/red regardless of normal status
@@ -286,7 +286,7 @@ class CmdbController extends Controller
             // Generate smart tooltip
             $tooltip = "<strong>{$ci->name}</strong><br>Tipe: {$ci->ciType->name}<br>Status: ".strtoupper($ci->status).'<br>IP: '.($ci->ip_address ?? 'N/A');
             if ($hasIncidents) {
-                $tooltip .= "<br><span style='color:#ef4444;font-weight:bold;'>⚠️ {$ci->incidents->count()} Open Incidents!</span>";
+                $tooltip .= "<br><span style='color:#ef4444;font-weight:bold;'>⚠️ {$ci->securityIncidents->count()} Open Incidents!</span>";
             }
             if ($ci->agent) {
                 $tooltip .= "<br><span style='color:#3b82f6;'>🛡️ EDR: ".strtoupper($agentStatus)."</span>";
@@ -324,7 +324,7 @@ class CmdbController extends Controller
                 'status' => $ci->status,
                 'ip' => $ci->ip_address,
                 'has_incidents' => $hasIncidents,
-                'incident_count' => $ci->incidents->count(),
+                'incident_count' => $ci->securityIncidents->count(),
                 'agent_status' => $agentStatus,
                 'pulse' => $pulse,
                 'url' => route('cmdb.show', $ci),
