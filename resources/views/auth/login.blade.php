@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Masuk — SIKANDI Kab. Ciamis</title>
+    <link rel="icon" type="image/jpeg" href="{{ asset('images/logo.jpg') }}">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -102,7 +103,7 @@
             </form>
 
             <!-- Quick Account Switcher (Helper for Evaluation) -->
-            <div class="mt-6 pt-5 border-t border-slate-800">
+            <!-- <div class="mt-6 pt-5 border-t border-slate-800">
                 <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2.5 flex items-center justify-between">
                     <span>Pilih Akun Demo (1-Klik)</span>
                     <span class="text-slate-500 lowercase font-normal">pass: password</span>
@@ -137,7 +138,7 @@
                         <span class="text-[10px] px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300">Executive</span>
                     </button>
                 </div>
-            </div>
+            </div> -->
         </div>
 
         <p class="text-center text-[11px] text-slate-500 mt-6">

@@ -17,7 +17,9 @@ class SecurityDetectionEngine
         $event = SecurityEvent::create([
             'event_id' => $payload['event_id'] ?? (string)\Illuminate\Support\Str::uuid(),
             'agent_id' => $agent->id,
-            'timestamp' => isset($payload['timestamp']) && is_numeric($payload['timestamp']) ? Carbon::createFromTimestamp($payload['timestamp']) : now(),
+            'timestamp' => isset($payload['timestamp']) && is_numeric($payload['timestamp'])
+    ? Carbon::createFromTimestamp($payload['timestamp'], 'Asia/Jakarta')
+    : now(),
             'event_type' => $payload['event_type'] ?? 'unknown',
             'action' => $payload['action'] ?? 'unknown',
             'hostname' => $payload['hostname'] ?? $agent->hostname,
