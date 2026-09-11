@@ -243,11 +243,13 @@ class CmdbController extends Controller
     }
 
     /**
-     * JSON Data for Vis.js Topology Graph
+     * JSON Data for Vis.js Topology Graph (Smart Integrated)
      */
     public function graphData(Request $request): JsonResponse
     {
-        $query = ConfigurationItem::with(['ciType', 'organization']);
+        $query = ConfigurationItem::with(['ciType', 'organization', 'incidents' => function($q) {
+            $q->whereNotIn('workflow_status', ['closed', 'resolved', 'false_positive']);
+        }, 'agent']);
 
         if ($request->filled('type')) {
             $query->where('ci_type_id', $request->type);
@@ -261,18 +263,39 @@ class CmdbController extends Controller
 
         $nodes = [];
         foreach ($cis as $ci) {
-            $statusColor = match ($ci->status) {
-                'active' => '#10b981', // green
-                'warning' => '#f59e0b', // amber
-                'down' => '#ef4444', // red
-                'maintenance' => '#6366f1', // indigo
-                default => '#64748b',
-            };
+            $hasIncidents = $ci->incidents->count() > 0;
+            $agentStatus = $ci->agent ? $ci->agent->status : 'unmanaged';
+            
+            // Priority styling: If it has incidents, it's compromised/red regardless of normal status
+            if ($hasIncidents) {
+                $borderColor = '#ef4444'; // Red
+                $bgColor = '#450a0a';
+                $pulse = true;
+            } else {
+                $pulse = false;
+                $borderColor = match ($ci->status) {
+                    'active' => '#10b981', // green
+                    'warning' => '#f59e0b', // amber
+                    'down' => '#ef4444', // red
+                    'maintenance' => '#6366f1', // indigo
+                    default => '#64748b',
+                };
+                $bgColor = '#1e293b';
+            }
+
+            // Generate smart tooltip
+            $tooltip = "<strong>{$ci->name}</strong><br>Tipe: {$ci->ciType->name}<br>Status: ".strtoupper($ci->status).'<br>IP: '.($ci->ip_address ?? 'N/A');
+            if ($hasIncidents) {
+                $tooltip .= "<br><span style='color:#ef4444;font-weight:bold;'>⚠️ {$ci->incidents->count()} Open Incidents!</span>";
+            }
+            if ($ci->agent) {
+                $tooltip .= "<br><span style='color:#3b82f6;'>🛡️ EDR: ".strtoupper($agentStatus)."</span>";
+            }
 
             $nodes[] = [
                 'id' => $ci->id,
-                'label' => "{$ci->ci_code}\n{$ci->name}",
-                'title' => "<strong>{$ci->name}</strong><br>Tipe: {$ci->ciType->name}<br>Status: ".strtoupper($ci->status).'<br>IP: '.($ci->ip_address ?? 'N/A'),
+                'label' => "{$ci->ci_code}\n{$ci->name}" . ($hasIncidents ? "\n(⚠️ ALERT)" : ""),
+                'title' => $tooltip,
                 'shape' => match ($ci->ciType->code) {
                     'server' => 'box',
                     'database' => 'database',
@@ -282,21 +305,28 @@ class CmdbController extends Controller
                     default => 'box',
                 },
                 'color' => [
-                    'background' => '#1e293b',
-                    'border' => $statusColor,
+                    'background' => $bgColor,
+                    'border' => $borderColor,
                     'highlight' => [
                         'background' => '#334155',
                         'border' => '#38bdf8',
                     ],
                 ],
                 'font' => [
-                    'color' => '#f8fafc',
+                    'color' => $hasIncidents ? '#fca5a5' : '#f8fafc',
                     'size' => 12,
                     'face' => 'Plus Jakarta Sans',
                 ],
-                'borderWidth' => 2,
+                'borderWidth' => $hasIncidents ? 4 : 2,
                 'margin' => 10,
                 'ci_code' => $ci->ci_code,
+                'ci_name' => $ci->name,
+                'status' => $ci->status,
+                'ip' => $ci->ip_address,
+                'has_incidents' => $hasIncidents,
+                'incident_count' => $ci->incidents->count(),
+                'agent_status' => $agentStatus,
+                'pulse' => $pulse,
                 'url' => route('cmdb.show', $ci),
             ];
         }
@@ -307,14 +337,22 @@ class CmdbController extends Controller
 
         $edges = [];
         foreach ($relationships as $rel) {
+            $sourceCi = $cis->firstWhere('id', $rel->source_ci_id);
+            $targetCi = $cis->firstWhere('id', $rel->target_ci_id);
+            
+            // If both source and target are active, animate data flow
+            $isActiveFlow = ($sourceCi && $sourceCi->status === 'active' && $targetCi && $targetCi->status === 'active');
+            
             $edges[] = [
                 'from' => $rel->source_ci_id,
                 'to' => $rel->target_ci_id,
                 'label' => $rel->relationship_type,
                 'arrows' => 'to',
-                'color' => ['color' => '#64748b', 'highlight' => '#38bdf8'],
-                'font' => ['color' => '#94a3b8', 'size' => 10, 'align' => 'horizontal'],
+                'color' => ['color' => $isActiveFlow ? '#10b981' : '#64748b', 'highlight' => '#38bdf8'],
+                'font' => ['color' => $isActiveFlow ? '#10b981' : '#94a3b8', 'size' => 10, 'align' => 'horizontal'],
                 'smooth' => ['type' => 'cubicBezier'],
+                'dashes' => $isActiveFlow ? true : false,
+                'is_active_flow' => $isActiveFlow, // For frontend animation flag
             ];
         }
 
