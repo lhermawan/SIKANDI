@@ -182,14 +182,20 @@
             },
             physics: {
                 enabled: physicsEnabled,
-                solver: 'forceAtlas2Based',
-                forceAtlas2Based: {
-                    gravitationalConstant: -60,
-                    centralGravity: 0.015,
-                    springLength: 150,
-                    springConstant: 0.05
+                solver: 'barnesHut',
+                barnesHut: {
+                    gravitationalConstant: -5000, // Tolakan antar node yang sangat kuat
+                    centralGravity: 0.15, // Tarikan ke tengah yang lembut
+                    springLength: 250, // Jarak antar node lebih panjang dan lega
+                    springConstant: 0.04, // Kelenturan garis
+                    damping: 0.09, // Transisi pergerakan yang mulus
+                    avoidOverlap: 0.8 // Force field anti-tumpuk
                 },
-                stabilization: { iterations: 150 }
+                stabilization: { 
+                    enabled: true,
+                    iterations: 30, // Dikecilkan agar user bisa melihat animasi node 'membuka/merenggang' secara elegan saat load
+                    updateInterval: 10
+                }
             },
             interaction: {
                 hover: true,
@@ -251,6 +257,16 @@
             } else {
                 closeInspector();
             }
+        });
+
+        // Auto-fit & zoom smoothly after nodes finish unpacking
+        network.on("stabilizationIterationsDone", function () {
+            network.fit({
+                animation: {
+                    duration: 1000,
+                    easingFunction: "easeInOutQuad"
+                }
+            });
         });
     }
 
