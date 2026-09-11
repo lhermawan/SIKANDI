@@ -23,16 +23,21 @@
         </div>
 
         <div class="flex flex-wrap items-center gap-2 text-xs">
-            <!-- Filter Type -->
-            <select id="filterType" onchange="loadGraphData()" class="px-3 py-1.5 bg-slate-950 border border-slate-700 rounded-xl text-slate-200">
+            <!-- View Mode Segmented Control -->
+            <div class="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-700 mr-2 shadow-inner">
+                <button onclick="changeViewMode('hybrid')" id="btn-hybrid" class="px-3 py-1.5 font-bold rounded-lg bg-blue-600 text-white shadow transition">Hybrid (Cluster)</button>
+                <button onclick="changeViewMode('infra')" id="btn-infra" class="px-3 py-1.5 font-bold rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition">Infra Only</button>
+                <button onclick="changeViewMode('service')" id="btn-service" class="px-3 py-1.5 font-bold rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition">Service Map</button>
+            </div>
+
+            <select id="filterType" onchange="loadGraphData()" class="px-3 py-1.5 bg-slate-950 border border-slate-700 rounded-xl text-slate-200 hidden md:block">
                 <option value="">Semua Tipe CI</option>
                 @foreach($ciTypes as $t)
                     <option value="{{ $t->id }}">{{ $t->name }}</option>
                 @endforeach
             </select>
 
-            <!-- Filter Status -->
-            <select id="filterStatus" onchange="loadGraphData()" class="px-3 py-1.5 bg-slate-950 border border-slate-700 rounded-xl text-slate-200">
+            <select id="filterStatus" onchange="loadGraphData()" class="px-3 py-1.5 bg-slate-950 border border-slate-700 rounded-xl text-slate-200 hidden md:block">
                 <option value="">Semua Status</option>
                 <option value="active">Active (Online)</option>
                 <option value="down">Down (Offline)</option>
@@ -40,20 +45,21 @@
                 <option value="warning">Warning</option>
             </select>
 
-            <!-- Reset View Button -->
             <button type="button" onclick="fitGraph()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl border border-slate-700 transition" title="Reset Zoom & Center">
                 Reset View
-            </button>
-
-            <!-- Toggle Physics -->
-            <button type="button" id="physicsBtn" onclick="togglePhysics()" class="px-3 py-1.5 bg-blue-600/20 text-blue-300 border border-blue-500/30 rounded-xl hover:bg-blue-600/30 transition shadow-[0_0_10px_rgba(37,99,235,0.2)]">
-                Stabilkan Node
             </button>
         </div>
     </div>
 
     <!-- Graph Canvas & Sidebar Inspector -->
     <div class="relative bg-slate-950 border border-slate-800 rounded-2xl overflow-hidden h-[650px] flex shadow-2xl">
+        
+        <!-- Loading Overlay -->
+        <div id="loadingOverlay" class="absolute inset-0 bg-slate-950/80 backdrop-blur-sm z-30 flex flex-col items-center justify-center hidden">
+            <div class="w-12 h-12 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin mb-4"></div>
+            <p class="text-blue-400 font-bold uppercase tracking-widest text-xs">Membangun Topologi Pintar...</p>
+        </div>
+
         <!-- Interactive Canvas Container -->
         <div id="cmdbNetwork" class="flex-1 w-full h-full cursor-grab active:cursor-grabbing"></div>
 
@@ -80,7 +86,7 @@
                 <span class="w-2.5 h-2.5 rounded-full bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.8)]"></span>
                 <span class="text-orange-400 font-bold">AT RISK (Blast Radius)</span>
             </div>
-            <p class="text-[9px] text-slate-500 pt-1 mt-1 border-t border-slate-800">Klik node untuk Smart Inspector &rarr;</p>
+            <p class="text-[9px] text-slate-500 pt-1 mt-1 border-t border-slate-800">Klik 2x pada kotak 📦 untuk mengekspansi klaster.</p>
         </div>
 
         <!-- Node Inspector Slide-over Panel -->
@@ -122,8 +128,10 @@
 @push('scripts')
 <script>
     let network = null;
-    let physicsEnabled = true;
     let graphDataCache = null;
+    let currentViewMode = 'hybrid'; // 'hybrid', 'infra', 'service'
+    
+    // Animation trackers
     let animationInterval = null;
     let pulseInterval = null;
     let dashOffset = 0;
@@ -133,7 +141,29 @@
         loadGraphData();
     });
 
+    function changeViewMode(mode) {
+        currentViewMode = mode;
+        
+        // Update Buttons UI
+        const modes = ['hybrid', 'infra', 'service'];
+        modes.forEach(m => {
+            const btn = document.getElementById('btn-' + m);
+            if(m === mode) {
+                btn.className = 'px-3 py-1.5 font-bold rounded-lg bg-blue-600 text-white shadow transition';
+            } else {
+                btn.className = 'px-3 py-1.5 font-bold rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition';
+            }
+        });
+
+        // Re-render
+        if(graphDataCache) {
+            applyFiltersAndRender();
+        }
+    }
+
     function loadGraphData() {
+        document.getElementById('loadingOverlay').classList.remove('hidden');
+        
         const type = document.getElementById('filterType').value;
         const status = document.getElementById('filterStatus').value;
         let url = `{{ route('cmdb.graph.data') }}?`;
@@ -144,18 +174,36 @@
             .then(res => res.json())
             .then(data => {
                 graphDataCache = data;
-                renderGraph(data);
+                applyFiltersAndRender();
             })
             .catch(err => {
                 console.error('Failed to load CMDB graph:', err);
+                document.getElementById('loadingOverlay').classList.add('hidden');
             });
     }
 
-    function renderGraph(data) {
-        // Clear previous animations to avoid memory leaks
+    function applyFiltersAndRender() {
+        // Clear old animations
         if(animationInterval) clearInterval(animationInterval);
         if(pulseInterval) clearInterval(pulseInterval);
 
+        // Deep copy data to avoid mutating cache
+        const nodes = JSON.parse(JSON.stringify(graphDataCache.nodes));
+        const edges = JSON.parse(JSON.stringify(graphDataCache.edges));
+
+        // Filter based on View Mode
+        nodes.forEach(n => {
+            if (currentViewMode === 'infra') {
+                if (['website', 'application'].includes(n.type_code)) n.hidden = true;
+            } else if (currentViewMode === 'service') {
+                if (['router', 'switch', 'firewall'].includes(n.type_code)) n.hidden = true;
+            }
+        });
+
+        renderGraph({ nodes, edges });
+    }
+
+    function renderGraph(data) {
         const container = document.getElementById('cmdbNetwork');
         const nodesDataSet = new vis.DataSet(data.nodes);
         const edgesDataSet = new vis.DataSet(data.edges);
@@ -181,21 +229,24 @@
                 smooth: { type: 'continuous' }
             },
             physics: {
-                enabled: physicsEnabled,
+                enabled: true,
                 solver: 'barnesHut',
                 barnesHut: {
-                    gravitationalConstant: -5000, // Tolakan antar node yang sangat kuat
-                    centralGravity: 0.15, // Tarikan ke tengah yang lembut
-                    springLength: 250, // Jarak antar node lebih panjang dan lega
-                    springConstant: 0.04, // Kelenturan garis
-                    damping: 0.09, // Transisi pergerakan yang mulus
-                    avoidOverlap: 0.8 // Force field anti-tumpuk
+                    gravitationalConstant: -5000, 
+                    centralGravity: 0.15,
+                    springLength: 250, 
+                    springConstant: 0.04,
+                    damping: 0.09,
+                    avoidOverlap: 0.8
                 },
                 stabilization: { 
                     enabled: true,
-                    iterations: 30, // Dikecilkan agar user bisa melihat animasi node 'membuka/merenggang' secara elegan saat load
+                    iterations: 30, // Unfolding effect
                     updateInterval: 10
                 }
+            },
+            layout: {
+                randomSeed: 42 // Keeps layout somewhat consistent between re-renders
             },
             interaction: {
                 hover: true,
@@ -207,19 +258,50 @@
 
         network = new vis.Network(container, { nodes: nodesDataSet, edges: edgesDataSet }, options);
 
-        // --- SMART ANIMATIONS ENGINE --- //
+        // --- SMART CLUSTERING LOGIC ---
+        if (currentViewMode === 'hybrid') {
+            const servers = data.nodes.filter(n => ['server', 'database'].includes(n.type_code));
+            
+            servers.forEach(server => {
+                // Find node IDs connected to this server
+                const connectedEdges = data.edges.filter(e => e.from === server.id || e.to === server.id);
+                const neighborIds = connectedEdges.map(e => e.from === server.id ? e.to : e.from);
+                
+                // Find which neighbors are websites
+                const websitesToCluster = data.nodes.filter(n => neighborIds.includes(n.id) && n.type_code === 'website');
+
+                // Auto-Cluster Threshold: > 2 websites on 1 server
+                if (websitesToCluster.length > 2) {
+                    const clusterOptions = {
+                        joinCondition: function (nodeOptions) {
+                            return websitesToCluster.map(w => w.id).includes(nodeOptions.id);
+                        },
+                        clusterNodeProperties: {
+                            id: 'cluster_' + server.id,
+                            label: '📦 ' + websitesToCluster.length + ' Websites\\n(Klik 2x Buka)',
+                            shape: 'box',
+                            color: { background: '#1e40af', border: '#60a5fa' },
+                            font: { color: '#ffffff', size: 12, face: 'Plus Jakarta Sans', bold: true },
+                            borderWidth: 2,
+                            shadow: true
+                        }
+                    };
+                    network.cluster(clusterOptions);
+                }
+            });
+        }
+
+        // --- SMART ANIMATIONS ENGINE ---
         
-        // 1. Data Flow Animation (Moving dashes on Active edges OR Threat edges)
+        // 1. Data Flow Animation
         const animatedEdges = data.edges.filter(e => e.is_active_flow || e.is_threat_flow);
-        
         if (animatedEdges.length > 0) {
             animationInterval = setInterval(() => {
-                dashOffset -= 1; // move dashes forward
+                dashOffset -= 1;
                 if (dashOffset < -20) dashOffset = 0;
             }, 50);
             
             network.on("beforeDrawing", function(ctx) {
-                // native canvas hack to animate dashes smoothly without rebuilding dataset
                 ctx.lineDashOffset = dashOffset;
             });
         }
@@ -239,12 +321,14 @@
                         shadow: {
                             enabled: true,
                             color: colorStr,
-                            size: 10 + pulseScale, // Pulsing size
+                            size: 10 + pulseScale,
                             x: 0, y: 0
                         }
                     };
                 });
-                nodesDataSet.update(updates);
+                
+                // Try catch to prevent error if node is clustered
+                try { nodesDataSet.update(updates); } catch (e) {}
             }, 60);
         }
 
@@ -252,20 +336,34 @@
         network.on('click', function(params) {
             if (params.nodes.length > 0) {
                 const nodeId = params.nodes[0];
+                
+                // Ignore clicks on cluster nodes for inspector
+                if (network.isCluster(nodeId)) {
+                    closeInspector();
+                    return;
+                }
+
                 const node = graphDataCache.nodes.find(n => n.id === nodeId);
-                showInspector(node);
+                if(node) showInspector(node);
             } else {
                 closeInspector();
             }
         });
 
+        // Double Click to Open Clusters
+        network.on("doubleClick", function (params) {
+            if (params.nodes.length == 1) {
+                if (network.isCluster(params.nodes[0]) == true) {
+                    network.openCluster(params.nodes[0]);
+                }
+            }
+        });
+
         // Auto-fit & zoom smoothly after nodes finish unpacking
         network.on("stabilizationIterationsDone", function () {
+            document.getElementById('loadingOverlay').classList.add('hidden');
             network.fit({
-                animation: {
-                    duration: 1000,
-                    easingFunction: "easeInOutQuad"
-                }
+                animation: { duration: 1000, easingFunction: "easeInOutQuad" }
             });
         });
     }
@@ -342,21 +440,6 @@
     function fitGraph() {
         if (network) {
             network.fit({ animation: { duration: 800, easingFunction: 'easeInOutQuad' } });
-        }
-    }
-
-    function togglePhysics() {
-        physicsEnabled = !physicsEnabled;
-        if (network) {
-            network.setOptions({ physics: { enabled: physicsEnabled } });
-        }
-        const btn = document.getElementById('physicsBtn');
-        if (physicsEnabled) {
-            btn.textContent = 'Stabilkan Node';
-            btn.className = 'px-3 py-1.5 bg-blue-600/20 text-blue-300 border border-blue-500/30 rounded-xl hover:bg-blue-600/30 transition shadow-[0_0_10px_rgba(37,99,235,0.2)]';
-        } else {
-            btn.textContent = 'Aktifkan Fisika';
-            btn.className = 'px-3 py-1.5 bg-slate-800 text-slate-400 border border-slate-700 rounded-xl hover:bg-slate-700 transition';
         }
     }
 </script>

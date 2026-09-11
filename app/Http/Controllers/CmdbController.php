@@ -360,6 +360,8 @@ class CmdbController extends Controller
                 'margin' => 10,
                 'ci_code' => $ci->ci_code,
                 'ci_name' => $ci->name,
+                'type_code' => $ci->ciType->code,
+                'type_name' => $ci->ciType->name,
                 'status' => $ci->status,
                 'ip' => $ci->ip_address,
                 'has_incidents' => $hasIncidents,
