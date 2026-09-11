@@ -74,7 +74,11 @@
             </div>
             <div class="flex items-center gap-2 mt-2 pt-2 border-t border-slate-800">
                 <span class="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-[0_0_8px_rgba(225,29,72,0.8)]"></span>
-                <span class="text-rose-400 font-bold">COMPROMISED (Active Incident)</span>
+                <span class="text-rose-400 font-bold">COMPROMISED (Hacked)</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.8)]"></span>
+                <span class="text-orange-400 font-bold">AT RISK (Blast Radius)</span>
             </div>
             <p class="text-[9px] text-slate-500 pt-1 mt-1 border-t border-slate-800">Klik node untuk Smart Inspector &rarr;</p>
         </div>
@@ -199,48 +203,36 @@
 
         // --- SMART ANIMATIONS ENGINE --- //
         
-        // 1. Data Flow Animation (Moving dashes on Active edges)
-        const activeEdges = data.edges.filter(e => e.is_active_flow).map(e => e.id);
+        // 1. Data Flow Animation (Moving dashes on Active edges OR Threat edges)
+        const animatedEdges = data.edges.filter(e => e.is_active_flow || e.is_threat_flow);
         
-        if (activeEdges.length > 0) {
+        if (animatedEdges.length > 0) {
             animationInterval = setInterval(() => {
                 dashOffset -= 1; // move dashes forward
                 if (dashOffset < -20) dashOffset = 0;
-                
-                const updates = data.edges.filter(e => e.is_active_flow).map(e => {
-                    return {
-                        id: e.id,
-                        dashes: [5, 5],
-                        background: {
-                            enabled: false
-                        }
-                    };
-                });
-                
-                // Vis.js hack to animate: we modify the network canvas directly via event listener instead of dataset update to prevent lag
             }, 50);
             
             network.on("beforeDrawing", function(ctx) {
-                // Actually Vis.js doesn't natively animate dashes via Dataset without heavy redrawing.
-                // We use the canvas context dashOffset natively!
+                // native canvas hack to animate dashes smoothly without rebuilding dataset
                 ctx.lineDashOffset = dashOffset;
             });
         }
 
-        // 2. Pulse Animation for Incident Nodes (Red glowing effect)
-        const pulseNodes = data.nodes.filter(n => n.pulse).map(n => n.id);
+        // 2. Pulse Animation for Incident Nodes (Red) and Blast Radius (Orange)
+        const pulseNodes = data.nodes.filter(n => n.pulse);
         if (pulseNodes.length > 0) {
             let increasing = true;
             pulseInterval = setInterval(() => {
                 if (increasing) { pulseScale += 1; if (pulseScale >= 15) increasing = false; } 
                 else { pulseScale -= 1; if (pulseScale <= 0) increasing = true; }
                 
-                const updates = pulseNodes.map(id => {
+                const updates = pulseNodes.map(n => {
+                    const colorStr = n.pulse === 'red' ? 'rgba(239, 68, 68, 0.8)' : 'rgba(249, 115, 22, 0.8)';
                     return {
-                        id: id,
+                        id: n.id,
                         shadow: {
                             enabled: true,
-                            color: 'rgba(239, 68, 68, 0.8)',
+                            color: colorStr,
                             size: 10 + pulseScale, // Pulsing size
                             x: 0, y: 0
                         }
@@ -268,7 +260,7 @@
         panel.classList.add('flex');
 
         document.getElementById('inspectCode').textContent = node.ci_code || 'CI-' + node.id;
-        document.getElementById('inspectName').textContent = node.ci_name || node.label;
+        document.getElementById('inspectName').textContent = node.ci_name || node.label.split('\n')[0];
         document.getElementById('inspectLink').href = node.url;
 
         // Build Smart Metrics HTML
@@ -280,12 +272,22 @@
         let alertBox = '';
         if (node.has_incidents) {
             alertBox = `
-            <div class="bg-rose-500/10 border border-rose-500/30 p-3 rounded-xl">
+            <div class="bg-rose-500/10 border border-rose-500/30 p-3 rounded-xl shadow-lg shadow-rose-900/20">
                 <div class="flex items-center gap-2 text-rose-400 mb-1">
                     <svg class="w-4 h-4 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                     <span class="text-xs font-bold uppercase tracking-wider">Compromised</span>
                 </div>
-                <p class="text-xs text-rose-300">Terdapat <b>${node.incident_count}</b> insiden keamanan aktif yang sedang diselidiki pada perangkat ini.</p>
+                <p class="text-[11px] text-rose-300">Terdapat <b>${node.incident_count}</b> insiden keamanan aktif yang mengincar perangkat ini!</p>
+            </div>`;
+        } else if (node.is_impacted) {
+            const sourcesText = node.impact_sources.join(', ');
+            alertBox = `
+            <div class="bg-orange-500/10 border border-orange-500/30 p-3 rounded-xl shadow-lg shadow-orange-900/20">
+                <div class="flex items-center gap-2 text-orange-400 mb-1">
+                    <svg class="w-4 h-4 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                    <span class="text-xs font-bold uppercase tracking-wider">At Risk (Blast Radius)</span>
+                </div>
+                <p class="text-[11px] text-orange-300 leading-relaxed">Berpotensi tinggi terdampak karena terhubung langsung dengan <b>${sourcesText}</b> yang saat ini sedang diretas.</p>
             </div>`;
         }
 

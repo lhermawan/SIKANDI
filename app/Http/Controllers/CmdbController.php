@@ -261,18 +261,54 @@ class CmdbController extends Controller
         $cis = $query->get();
         $ciIds = $cis->pluck('id')->toArray();
 
+        $relationships = CiRelationship::whereIn('source_ci_id', $ciIds)
+            ->whereIn('target_ci_id', $ciIds)
+            ->get();
+
+        // 1. Identifikasi Node yang Compromised
+        $compromisedIds = [];
+        $compromisedNames = [];
+        foreach ($cis as $ci) {
+            if ($ci->securityIncidents->count() > 0) {
+                $compromisedIds[] = $ci->id;
+                $compromisedNames[$ci->id] = $ci->name;
+            }
+        }
+
+        // 2. Identifikasi Blast Radius (Impacted Nodes)
+        $impactedBy = []; // Mapping: impacted_ci_id => array of compromised_names
+        foreach ($relationships as $rel) {
+            $isSourceCompromised = in_array($rel->source_ci_id, $compromisedIds);
+            $isTargetCompromised = in_array($rel->target_ci_id, $compromisedIds);
+
+            if ($isSourceCompromised && !$isTargetCompromised) {
+                $impactedBy[$rel->target_ci_id][] = $compromisedNames[$rel->source_ci_id];
+            }
+            if ($isTargetCompromised && !$isSourceCompromised) {
+                $impactedBy[$rel->source_ci_id][] = $compromisedNames[$rel->target_ci_id];
+            }
+        }
+
         $nodes = [];
         foreach ($cis as $ci) {
-            $hasIncidents = $ci->securityIncidents->count() > 0;
+            $hasIncidents = in_array($ci->id, $compromisedIds);
+            $isImpacted = isset($impactedBy[$ci->id]);
             $agentStatus = $ci->agent ? $ci->agent->status : 'unmanaged';
             
-            // Priority styling: If it has incidents, it's compromised/red regardless of normal status
+            $pulse = false;
+            $impactSources = [];
+
+            // Styling Logics
             if ($hasIncidents) {
                 $borderColor = '#ef4444'; // Red
                 $bgColor = '#450a0a';
-                $pulse = true;
+                $pulse = 'red';
+            } elseif ($isImpacted) {
+                $borderColor = '#f97316'; // Orange / Warning
+                $bgColor = '#431407'; // Dark Orange
+                $pulse = 'orange';
+                $impactSources = array_unique($impactedBy[$ci->id]);
             } else {
-                $pulse = false;
                 $borderColor = match ($ci->status) {
                     'active' => '#10b981', // green
                     'warning' => '#f59e0b', // amber
@@ -287,14 +323,17 @@ class CmdbController extends Controller
             $tooltip = "<strong>{$ci->name}</strong><br>Tipe: {$ci->ciType->name}<br>Status: ".strtoupper($ci->status).'<br>IP: '.($ci->ip_address ?? 'N/A');
             if ($hasIncidents) {
                 $tooltip .= "<br><span style='color:#ef4444;font-weight:bold;'>⚠️ {$ci->securityIncidents->count()} Open Incidents!</span>";
+            } elseif ($isImpacted) {
+                $tooltip .= "<br><span style='color:#f97316;font-weight:bold;'>⚠️ AT RISK: Terhubung ke aset yang diretas!</span>";
             }
-            if ($ci->agent) {
-                $tooltip .= "<br><span style='color:#3b82f6;'>🛡️ EDR: ".strtoupper($agentStatus)."</span>";
-            }
+
+            $label = "{$ci->ci_code}\n{$ci->name}";
+            if ($hasIncidents) $label .= "\n(⚠️ COMPROMISED)";
+            elseif ($isImpacted) $label .= "\n(⚠️ AT RISK)";
 
             $nodes[] = [
                 'id' => $ci->id,
-                'label' => "{$ci->ci_code}\n{$ci->name}" . ($hasIncidents ? "\n(⚠️ ALERT)" : ""),
+                'label' => $label,
                 'title' => $tooltip,
                 'shape' => match ($ci->ciType->code) {
                     'server' => 'box',
@@ -313,46 +352,66 @@ class CmdbController extends Controller
                     ],
                 ],
                 'font' => [
-                    'color' => $hasIncidents ? '#fca5a5' : '#f8fafc',
+                    'color' => $hasIncidents ? '#fca5a5' : ($isImpacted ? '#fdba74' : '#f8fafc'),
                     'size' => 12,
                     'face' => 'Plus Jakarta Sans',
                 ],
-                'borderWidth' => $hasIncidents ? 4 : 2,
+                'borderWidth' => ($hasIncidents || $isImpacted) ? 4 : 2,
                 'margin' => 10,
                 'ci_code' => $ci->ci_code,
                 'ci_name' => $ci->name,
                 'status' => $ci->status,
                 'ip' => $ci->ip_address,
                 'has_incidents' => $hasIncidents,
-                'incident_count' => $ci->securityIncidents->count(),
+                'incident_count' => $hasIncidents ? $ci->securityIncidents->count() : 0,
+                'is_impacted' => $isImpacted,
+                'impact_sources' => $impactSources,
                 'agent_status' => $agentStatus,
                 'pulse' => $pulse,
                 'url' => route('cmdb.show', $ci),
             ];
         }
 
-        $relationships = CiRelationship::whereIn('source_ci_id', $ciIds)
-            ->whereIn('target_ci_id', $ciIds)
-            ->get();
-
         $edges = [];
         foreach ($relationships as $rel) {
             $sourceCi = $cis->firstWhere('id', $rel->source_ci_id);
             $targetCi = $cis->firstWhere('id', $rel->target_ci_id);
             
-            // If both source and target are active, animate data flow
-            $isActiveFlow = ($sourceCi && $sourceCi->status === 'active' && $targetCi && $targetCi->status === 'active');
+            $isSourceComp = in_array($rel->source_ci_id, $compromisedIds);
+            $isTargetComp = in_array($rel->target_ci_id, $compromisedIds);
+
+            // Flow logics
+            $isThreatFlow = false;
+            $isActiveFlow = false;
+
+            if ($isSourceComp || $isTargetComp) {
+                $isThreatFlow = true; // Jalur penyebaran ancaman
+            } elseif ($sourceCi && $sourceCi->status === 'active' && $targetCi && $targetCi->status === 'active') {
+                $isActiveFlow = true; // Jalur normal data
+            }
+
+            if ($isThreatFlow) {
+                $edgeColor = '#ef4444'; // Red edges
+                $fontColor = '#ef4444';
+            } elseif ($isActiveFlow) {
+                $edgeColor = '#10b981'; // Green active edges
+                $fontColor = '#10b981';
+            } else {
+                $edgeColor = '#64748b'; // Idle
+                $fontColor = '#94a3b8';
+            }
             
             $edges[] = [
                 'from' => $rel->source_ci_id,
                 'to' => $rel->target_ci_id,
                 'label' => $rel->relationship_type,
                 'arrows' => 'to',
-                'color' => ['color' => $isActiveFlow ? '#10b981' : '#64748b', 'highlight' => '#38bdf8'],
-                'font' => ['color' => $isActiveFlow ? '#10b981' : '#94a3b8', 'size' => 10, 'align' => 'horizontal'],
+                'color' => ['color' => $edgeColor, 'highlight' => '#38bdf8'],
+                'font' => ['color' => $fontColor, 'size' => 10, 'align' => 'horizontal'],
                 'smooth' => ['type' => 'cubicBezier'],
-                'dashes' => $isActiveFlow ? true : false,
-                'is_active_flow' => $isActiveFlow, // For frontend animation flag
+                'dashes' => ($isThreatFlow || $isActiveFlow) ? true : false,
+                'is_active_flow' => $isActiveFlow,
+                'is_threat_flow' => $isThreatFlow,
             ];
         }
 
