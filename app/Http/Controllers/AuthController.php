@@ -26,10 +26,30 @@ class AuthController extends Controller
 
     public function login(Request $request): RedirectResponse
     {
-        $credentials = $request->validate([
+        $rules = [
             'login' => ['required', 'string'],
             'password' => ['required', 'string'],
-        ]);
+        ];
+
+        if (config('services.recaptcha.secret_key')) {
+            $rules['g-recaptcha-response'] = ['required', 'string'];
+        }
+
+        $credentials = $request->validate($rules);
+
+        if (config('services.recaptcha.secret_key')) {
+            $response = \Illuminate\Support\Facades\Http::asForm()->post('https://www.google.com/recaptcha/api/siteverify', [
+                'secret' => config('services.recaptcha.secret_key'),
+                'response' => $request->input('g-recaptcha-response'),
+                'remoteip' => $request->ip(),
+            ]);
+
+            if (!$response->successful() || !$response->json('success') || $response->json('score') < 0.5) {
+                return back()->withErrors([
+                    'login' => 'Verifikasi reCAPTCHA gagal, silakan coba lagi.',
+                ])->onlyInput('login');
+            }
+        }
 
         $loginField = filter_var($credentials['login'], FILTER_VALIDATE_EMAIL) ? 'email' : 'username';
 

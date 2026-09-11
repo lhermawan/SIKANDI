@@ -58,7 +58,7 @@
                 </div>
             @endif
 
-            <form action="{{ route('login.post') }}" method="POST" class="space-y-4">
+            <form action="{{ route('login.post') }}" method="POST" class="space-y-4" id="login-form">
                 @csrf
                 <div>
                     <label for="login" class="block text-xs font-medium text-slate-300 mb-1.5">Username atau Email</label>
@@ -91,6 +91,8 @@
                     </label>
                     <span class="text-slate-500">Portal Sandi & CSIRT</span>
                 </div>
+
+                <input type="hidden" name="g-recaptcha-response" id="g-recaptcha-response">
 
                 <button type="submit"
                     class="w-full py-2.5 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-medium text-sm rounded-xl shadow-lg shadow-blue-500/25 transition duration-200 flex items-center justify-center gap-2 cursor-pointer">
@@ -149,5 +151,19 @@
             document.getElementById('password').value = 'password';
         }
     </script>
+    @if(config('services.recaptcha.site_key'))
+    <script src="https://www.google.com/recaptcha/api.js?render={{ config('services.recaptcha.site_key') }}"></script>
+    <script>
+        document.getElementById('login-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            grecaptcha.ready(function() {
+                grecaptcha.execute('{{ config('services.recaptcha.site_key') }}', {action: 'login'}).then(function(token) {
+                    document.getElementById('g-recaptcha-response').value = token;
+                    document.getElementById('login-form').submit();
+                });
+            });
+        });
+    </script>
+    @endif
 </body>
 </html>
