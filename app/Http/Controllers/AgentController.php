@@ -41,10 +41,12 @@ class AgentController extends Controller
 
         if ($request->boolean('create_ci')) {
             $ciType = \App\Models\CiType::where('name', 'like', '%Server%')->orWhere('code', 'SRV')->first();
+            $organizationId = auth()->user()?->organization_id ?? \App\Models\Organization::first()?->id ?? 1;
             
             $ci = \App\Models\ConfigurationItem::create([
                 'name' => $agent->hostname ?: 'Server ' . $agent->agent_id,
                 'ci_type_id' => $ciType?->id,
+                'organization_id' => $organizationId,
                 'hostname' => $agent->hostname,
                 'ip_address' => $agent->ip_address,
                 'operating_system' => $agent->os,
