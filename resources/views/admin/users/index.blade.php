@@ -1,4 +1,4 @@
-﻿@extends('layouts.app')
+@extends('layouts.app')
 @section('title', 'Manajemen Pengguna & RBAC')
 @section('content')
 <div class="space-y-6">
@@ -269,7 +269,7 @@ function generatePassword(inputId, barId, labelId, prefix) {
     ];
     const all = u+l+n+s;
     for(let i=pwd.length;i<16;i++) pwd.push(all[Math.floor(Math.random()*all.length)]);
-    pwd = pwd.sort(()=>Math.random()-0.5).join(');
+    pwd = pwd.sort(()=>Math.random()-0.5).join('');
     document.getElementById(inputId).value = pwd;
     const cf = document.getElementById(prefix+'PasswordConfirm');
     if(cf) cf.value = pwd;
@@ -330,13 +330,13 @@ function openEditModal(userId){
         .then(d=>{
             document.getElementById('editUserForm').action='/admin/users/'+d.id;
             document.getElementById('editModalSubtitle').textContent='@'+d.username+' · '+d.email;
-            document.getElementById('editName').value=d.name||';
-            document.getElementById('editUsername').value=d.username||';
-            document.getElementById('editEmail').value=d.email||';
-            document.getElementById('editNip').value=d.nip||';
-            document.getElementById('editPhone').value=d.phone||';
-            document.getElementById('editPassword').value=';
-            document.getElementById('editPasswordConfirm').value=';
+            document.getElementById('editName').value=d.name||'';
+            document.getElementById('editUsername').value=d.username||'';
+            document.getElementById('editEmail').value=d.email||'';
+            document.getElementById('editNip').value=d.nip||'';
+            document.getElementById('editPhone').value=d.phone||'';
+            document.getElementById('editPassword').value='';
+            document.getElementById('editPasswordConfirm').value='';
             document.getElementById('editStrengthBar').style.width='0%';
             document.getElementById('editCopyBtn').classList.add('hidden');
             const rb=document.getElementById('editReqBox');
