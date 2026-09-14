@@ -42,13 +42,15 @@ class UserController extends Controller
     {
         $validated = $request->validate([
             'name'            => 'required|string|max:255',
-            'username'        => 'required|string|max:50|unique:users,username|alpha_dash',
+            'username'        => ['required', 'string', 'max:50', 'unique:users,username', 'regex:/^[a-zA-Z0-9\._\-]+$/'],
             'email'           => 'required|email:rfc,dns|max:255|unique:users,email',
             'password'        => $this->strongPasswordRule(true),
             'organization_id' => 'nullable|exists:organizations,id',
             'phone'           => 'nullable|string|max:50',
             'nip'             => 'nullable|string|max:50',
             'role'            => 'required|exists:roles,name',
+        ], [
+            'username.regex' => 'Username hanya boleh berisi huruf, angka, titik, strip, dan garis bawah tanpa spasi.'
         ]);
 
         $user = User::create([
@@ -91,13 +93,15 @@ class UserController extends Controller
     {
         $validated = $request->validate([
             'name'            => 'required|string|max:255',
-            'username'        => 'required|string|max:50|alpha_dash|unique:users,username,' . $user->id,
+            'username'        => ['required', 'string', 'max:50', 'regex:/^[a-zA-Z0-9\._\-]+$/', 'unique:users,username,' . $user->id],
             'email'           => 'required|email:rfc|max:255|unique:users,email,' . $user->id,
             'password'        => $this->strongPasswordRule(false), // nullable saat edit
             'organization_id' => 'nullable|exists:organizations,id',
             'phone'           => 'nullable|string|max:50',
             'nip'             => 'nullable|string|max:50',
             'role'            => 'required|exists:roles,name',
+        ], [
+            'username.regex' => 'Username hanya boleh berisi huruf, angka, titik, strip, dan garis bawah tanpa spasi.'
         ]);
 
         $updateData = [
