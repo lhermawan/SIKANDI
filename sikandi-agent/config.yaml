@@ -4,8 +4,8 @@ agent:
   security_interval: 10
 api:
   timeout: 10
-  token: 8|qI3AhHZCx7zRvuhjAu3Ac0cZAfQMr2HxklWttGrY2521225c
-  url: http://157.10.157.25:8081/api/v1/agent
+  token: ""
+  url: https://sikandi.ciamiskab.go.id/api/v1/agent
 queue:
   enabled: true
   max_size: 10000

@@ -15,7 +15,7 @@ class ApiClient:
         return {"Authorization": f"Bearer {self.token}", "Accept": "application/json"}
         
     def register(self):
-        if "MASUKKAN_TOKEN_ANDA_DISINI" in self.token:
+        if not self.token or str(self.token).strip() == "" or "MASUKKAN_TOKEN_ANDA_DISINI" in str(self.token):
             print("=== SIKANDI Agent Simulator ===")
             print("[-] Token belum disetel di config.yaml.")
             reg_token = input("Masukkan Registration Token: ").strip()

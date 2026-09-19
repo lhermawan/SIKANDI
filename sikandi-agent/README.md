@@ -46,9 +46,9 @@ Sesuaikan `url` dengan alamat server utama SIKANDI Anda:
 ```yaml
 api:
   url: "https://sikandi.ciamiskab.go.id/api/v1/agent"
-  token: "MASUKKAN_TOKEN_ANDA_DISINI" 
+  token: "" 
 ```
-*Catatan: Biarkan token bertuliskan `MASUKKAN_TOKEN_ANDA_DISINI`. Agen akan menanyakannya saat pertama kali dijalankan.*
+*Catatan: Biarkan token kosong (`""`). Agen akan menanyakannya saat pertama kali dijalankan.*
 
 ---
 
