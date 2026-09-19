@@ -166,16 +166,18 @@ class SikandiAgent:
                             # Eksekusi blokir via iptables
                             # Note: membutuhkan hak akses sudo/root
                             try:
-                                # Gunakan -I INPUT 1 agar rule blokir ada di urutan paling atas
-                                subprocess.run(['iptables', '-I', 'INPUT', '1', '-s', ip, '-j', 'DROP'], check=True)
-                                
-                                # Opsional: jika menggunakan Docker, kita juga perlu nge-drop di chain DOCKER-USER
-                                # subprocess.run(['iptables', '-I', 'DOCKER-USER', '1', '-s', ip, '-j', 'DROP'], check=False, stderr=subprocess.DEVNULL)
-                                
-                                logger.info(f"SUCCESS: IP {ip} blocked successfully.")
+                                # Cek dulu apakah rule sudah ada di iptables
+                                subprocess.run(['iptables', '-C', 'INPUT', '-s', ip, '-j', 'DROP'], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                                logger.info(f"Rule for IP {ip} already exists. Skipping insertion.")
                                 self.blocked_ips.add(ip)
-                            except subprocess.CalledProcessError as e:
-                                logger.error(f"FAILED to block IP {ip}: {e}")
+                            except subprocess.CalledProcessError:
+                                # Jika belum ada, baru insert di posisi paling atas
+                                try:
+                                    subprocess.run(['iptables', '-I', 'INPUT', '1', '-s', ip, '-j', 'DROP'], check=True)
+                                    logger.info(f"SUCCESS: IP {ip} blocked successfully.")
+                                    self.blocked_ips.add(ip)
+                                except subprocess.CalledProcessError as e:
+                                    logger.error(f"FAILED to block IP {ip}: {e}")
             except Exception as e:
                 logger.error(f"Blacklist loop error: {e}")
             
