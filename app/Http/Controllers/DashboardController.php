@@ -200,7 +200,9 @@ class DashboardController extends Controller
                 'severity' => 'high',
                 'workflow_status' => 'investigation',
                 'source_ip' => $ip,
-                'description' => 'Insiden dibuat otomatis dari Dashboard SOC untuk menindaklanjuti IP berbahaya (Malicious) berdasarkan laporan AbuseIPDB.'
+                'description' => 'Insiden dibuat otomatis dari Dashboard SOC untuk menindaklanjuti IP berbahaya (Malicious) berdasarkan laporan AbuseIPDB.',
+                'organization_id' => \App\Models\Organization::first()->id ?? 1,
+                'reporter_id' => \Illuminate\Support\Facades\Auth::id(),
             ]);
         }
 
