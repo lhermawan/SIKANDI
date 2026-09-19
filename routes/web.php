@@ -94,6 +94,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/incidents/{incident}/tasks/{task}/toggle', [\App\Http\Controllers\SecurityIncidentController::class, 'toggleTask'])->name('incidents.tasks.toggle');
         Route::post('/incidents/{incident}/responses', [\App\Http\Controllers\SecurityIncidentController::class, 'storeResponse'])->name('incidents.responses.store');
         Route::post('/incidents/responses/{response}/execute', [\App\Http\Controllers\SecurityIncidentController::class, 'executeAction'])->name('incidents.responses.execute');
+        Route::post('/incidents/responses/bulk-execute', [\App\Http\Controllers\SecurityIncidentController::class, 'executeBulkAction'])->name('incidents.responses.bulk-execute');
         Route::post('/incidents/{incident}/evidence', [\App\Http\Controllers\SecurityIncidentController::class, 'storeEvidence'])->name('incidents.evidence.store');
         Route::post('/incidents/{incident}/resolve', [\App\Http\Controllers\SecurityIncidentController::class, 'resolve'])->name('incidents.resolve');
         Route::post('/incidents/{incident}/assign', [\App\Http\Controllers\SecurityIncidentController::class, 'assign'])->name('incidents.assign');

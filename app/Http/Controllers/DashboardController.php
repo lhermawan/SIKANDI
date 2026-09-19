@@ -227,12 +227,27 @@ class DashboardController extends Controller
         return view('security.threat-actors', compact('topAttackers'));
     }
 
-    public function socApprovals()
+    public function socApprovals(Request $request)
     {
-        $pendingActions = \App\Models\SecurityIncidentResponse::where('status', 'pending')
-            ->with('incident')
-            ->latest()
-            ->paginate(20);
+        $query = \App\Models\SecurityIncidentResponse::where('status', 'pending')
+            ->with('incident');
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('action', 'like', "%{$search}%")
+                  ->orWhere('description', 'like', "%{$search}%")
+                  ->orWhereHas('incident', function($q2) use ($search) {
+                      $q2->where('incident_code', 'like', "%{$search}%")
+                         ->orWhere('title', 'like', "%{$search}%")
+                         ->orWhere('source_ip', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        $pendingActions = $query->latest()
+            ->paginate(20)
+            ->withQueryString();
             
         return view('security.approvals', compact('pendingActions'));
     }

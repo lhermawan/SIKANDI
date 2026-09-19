@@ -202,6 +202,37 @@ class SecurityIncidentController extends Controller
         return back()->with('error', 'Gagal mengeksekusi tindakan. Silakan periksa log.');
     }
 
+    public function executeBulkAction(Request $request, \App\Services\ResponseExecutorService $executorService)
+    {
+        if (!Auth::user()->hasRole('Super Admin') && !Auth::user()->hasRole('Admin Persandian')) {
+            abort(403, 'Akses Ditolak. Hanya Super Admin yang dapat mengeksekusi tindakan SOC.');
+        }
+
+        $request->validate([
+            'response_ids' => 'required|array',
+            'response_ids.*' => 'exists:security_incident_responses,id'
+        ]);
+
+        $successCount = 0;
+        $failCount = 0;
+
+        foreach ($request->response_ids as $id) {
+            $response = \App\Models\SecurityIncidentResponse::find($id);
+            if ($response && $response->status === 'pending') {
+                if ($executorService->execute($response, Auth::id())) {
+                    $successCount++;
+                } else {
+                    $failCount++;
+                }
+            }
+        }
+
+        $msg = "Berhasil mengeksekusi $successCount tindakan.";
+        if ($failCount > 0) $msg .= " ($failCount gagal).";
+
+        return back()->with('success', $msg);
+    }
+
     public function storeEvidence(Request $request, SecurityIncident $incident)
     {
         $validated = $request->validate([
