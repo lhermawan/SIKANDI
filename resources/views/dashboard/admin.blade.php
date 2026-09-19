@@ -125,19 +125,40 @@
                 <thead>
                     <tr class="border-b border-slate-800 text-slate-400 font-medium">
                         <th class="pb-2.5">Source IP</th>
-                        <th class="pb-2.5">Total Hits/Events</th>
-                        <th class="pb-2.5">Reputasi / Status</th>
+                        <th class="pb-2.5">Total Hits</th>
+                        <th class="pb-2.5">Threat Intel (AbuseIPDB)</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-800/60 text-slate-300">
                     @forelse($topAttackers as $attacker)
                         <tr class="hover:bg-slate-800/40 transition">
-                            <td class="py-3 font-mono text-rose-400 font-bold">{{ $attacker->source_ip }}</td>
+                            <td class="py-3 font-mono text-rose-400 font-bold flex items-center gap-2">
+                                @if($attacker->reputation && $attacker->reputation->country_code)
+                                    <img src="https://flagcdn.com/16x12/{{ strtolower($attacker->reputation->country_code) }}.png" alt="{{ $attacker->reputation->country_code }}" class="w-4 h-3 rounded-sm opacity-80" title="{{ $attacker->reputation->country_code }}">
+                                @endif
+                                {{ $attacker->source_ip }}
+                            </td>
                             <td class="py-3 font-semibold">{{ number_format($attacker->total_events) }} events</td>
                             <td class="py-3">
-                                <span class="px-2 py-0.5 rounded text-[10px] bg-rose-500/20 text-rose-300">
-                                    Malicious (Terindikasi)
-                                </span>
+                                @if($attacker->reputation)
+                                    @if($attacker->reputation->abuse_confidence_score >= 80)
+                                        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30">
+                                            Skor: {{ $attacker->reputation->abuse_confidence_score }}% (Malicious)
+                                        </span>
+                                    @elseif($attacker->reputation->abuse_confidence_score >= 20)
+                                        <span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                                            Skor: {{ $attacker->reputation->abuse_confidence_score }}% (Suspicious)
+                                        </span>
+                                    @else
+                                        <span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                                            Aman (Skor: 0%)
+                                        </span>
+                                    @endif
+                                @else
+                                    <span class="px-2 py-0.5 rounded text-[10px] bg-slate-700/50 text-slate-400 italic">
+                                        Menganalisis reputasi...
+                                    </span>
+                                @endif
                             </td>
                         </tr>
                     @empty

@@ -157,6 +157,16 @@ class DashboardController extends Controller
             ->take(5)
             ->get();
 
+        // Sambungkan dengan Threat Intelligence dan jalankan pengecekan Background jika belum ada cache
+        foreach ($topAttackers as $attacker) {
+            $rep = \App\Models\IpReputation::where('ip_address', $attacker->source_ip)->first();
+            if (!$rep) {
+                // Dispatch Job agar ditarik oleh Queue Worker, UI tetap instan
+                \App\Jobs\EnrichIpReputationJob::dispatch($attacker->source_ip);
+            }
+            $attacker->reputation = $rep;
+        }
+
         $recentCis = ConfigurationItem::with(['ciType', 'organization'])->latest()->take(5)->get();
         $recentTickets = Ticket::with(['requester', 'organization', 'service'])->latest()->take(5)->get();
         $recentIncidents = Incident::with(['configurationItem', 'assignedTechnician'])->latest()->take(5)->get();

@@ -41,4 +41,8 @@ return [
         'min_score' => (float) env('RECAPTCHA_MIN_SCORE', 0.5),
     ],
 
+    'abuseipdb' => [
+        'key' => env('ABUSEIPDB_API_KEY'),
+    ],
+
 ];
