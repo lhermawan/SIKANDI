@@ -30,7 +30,10 @@
     <div class="flex flex-wrap items-center gap-2">
         @if($incident->source_ip && $incident->workflow_status !== 'resolved')
             @php
-                $isBlocked = $incident->responses()->where('action', 'block_ip')->whereIn('status', ['pending', 'executed'])->exists();
+                $isBlocked = \App\Models\SecurityIncidentResponse::where('action', 'block_ip')
+                    ->where('description', 'like', "%{$incident->source_ip}%")
+                    ->whereIn('status', ['pending', 'executed'])
+                    ->exists();
             @endphp
             @if(!$isBlocked)
                 <form action="{{ route('security.incidents.responses.store', $incident) }}" method="POST" onsubmit="return confirm('Masukkan IP ini ke antrean pemblokiran (HitL)?');">
