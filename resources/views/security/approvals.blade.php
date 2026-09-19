@@ -11,13 +11,13 @@
         </div>
         
         <!-- Filter Form -->
-        <form action="{{ route('approvals.index') }}" method="GET" class="flex gap-2">
+        <form action="{{ route('security.approvals.index') }}" method="GET" class="flex gap-2">
             <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari IP, Judul, atau Deskripsi..." class="bg-slate-900 border border-slate-700 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full px-3 py-2 placeholder-slate-500 min-w-[250px]">
             <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition">
                 Filter
             </button>
             @if(request('search'))
-                <a href="{{ route('approvals.index') }}" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white text-sm font-semibold rounded-lg transition">
+                <a href="{{ route('security.approvals.index') }}" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white text-sm font-semibold rounded-lg transition">
                     Reset
                 </a>
             @endif
