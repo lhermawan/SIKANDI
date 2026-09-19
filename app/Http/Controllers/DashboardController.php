@@ -184,4 +184,43 @@ class DashboardController extends Controller
             'recentAuditLogs', 'incidentTrend', 'severityChart', 'topAttackers', 'pendingActions'
         ));
     }
+
+    public function draftQuickBlock(Request $request)
+    {
+        $request->validate(['ip' => 'required|ip']);
+        $ip = $request->ip;
+
+        // Cari insiden terkait IP ini, atau buat baru jika tidak ada
+        $incident = \App\Models\SecurityIncident::where('source_ip', $ip)->first();
+
+        if (!$incident) {
+            $incident = \App\Models\SecurityIncident::create([
+                'title' => 'Tindakan Proaktif: Threat Intel IP ' . $ip,
+                'incident_type' => 'malware',
+                'severity' => 'high',
+                'workflow_status' => 'investigation',
+                'source_ip' => $ip,
+                'description' => 'Insiden dibuat otomatis dari Dashboard SOC untuk menindaklanjuti IP berbahaya (Malicious) berdasarkan laporan AbuseIPDB.'
+            ]);
+        }
+
+        // Cek apakah sudah ada draft/eksekusi untuk IP ini
+        $exists = $incident->responses()->where('action', 'block_ip')
+            ->where('description', 'like', "%$ip%")
+            ->whereIn('status', ['pending', 'executed'])
+            ->exists();
+
+        if ($exists) {
+            return back()->with('error', 'Tindakan blokir untuk IP ' . $ip . ' sudah ada di antrean atau telah dieksekusi.');
+        }
+
+        $incident->responses()->create([
+            'action' => 'block_ip',
+            'description' => 'Blokir IP Address ' . $ip . ' (Threat Intel: Malicious)',
+            'status' => 'pending',
+            'performed_by' => null,
+        ]);
+
+        return back()->with('success', 'Draft blokir untuk IP ' . $ip . ' berhasil ditambahkan ke antrean Menunggu Eksekusi.');
+    }
 }

@@ -127,6 +127,8 @@ Route::middleware('auth')->group(function () {
 
     // Administration (Roles & OPD)
     Route::prefix('admin')->name('admin.')->middleware(['role:Super Admin|Admin Persandian'])->group(function () {
+        Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+        Route::post('/soc/quick-block', [DashboardController::class, 'draftQuickBlock'])->name('soc.quick-block');
         Route::get('/users', [UserController::class, 'index'])->name('users.index');
         Route::post('/users', [UserController::class, 'store'])->name('users.store');
         Route::get('/users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');

@@ -127,6 +127,7 @@
                         <th class="pb-2.5">Source IP</th>
                         <th class="pb-2.5">Total Hits</th>
                         <th class="pb-2.5">Threat Intel (AbuseIPDB)</th>
+                        <th class="pb-2.5 text-right">Aksi Cepat</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-800/60 text-slate-300">
@@ -150,20 +151,31 @@
                                             Skor: {{ $attacker->reputation->abuse_confidence_score }}% (Suspicious)
                                         </span>
                                     @else
-                                        <span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                                        <span class="px-2 py-0.5 rounded text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                                             Aman (Skor: 0%)
                                         </span>
                                     @endif
                                 @else
-                                    <span class="px-2 py-0.5 rounded text-[10px] bg-slate-700/50 text-slate-400 italic">
-                                        Menganalisis reputasi...
+                                    <span class="px-2 py-0.5 rounded text-[10px] bg-slate-800 text-slate-400 border border-slate-700 animate-pulse">
+                                        Scanning...
                                     </span>
+                                @endif
+                            </td>
+                            <td class="py-3 text-right">
+                                @if($attacker->reputation && $attacker->reputation->abuse_confidence_score >= 80)
+                                    <form action="{{ route('admin.soc.quick-block') }}" method="POST" class="inline-block" onsubmit="return confirm('Masukkan IP ini ke antrean pemblokiran (HitL)?');">
+                                        @csrf
+                                        <input type="hidden" name="ip" value="{{ $attacker->source_ip }}">
+                                        <button type="submit" class="px-3 py-1 bg-rose-500 hover:bg-rose-600 text-white font-bold rounded shadow-lg shadow-rose-500/20 transition text-[10px] uppercase">
+                                            ⚡ Draft Blokir
+                                        </button>
+                                    </form>
                                 @endif
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="3" class="py-4 text-center text-slate-500">Belum ada data attacker terdeteksi.</td>
+                            <td colspan="4" class="py-4 text-center text-slate-500">Belum ada data attacker terdeteksi.</td>
                         </tr>
                     @endforelse
                 </tbody>
