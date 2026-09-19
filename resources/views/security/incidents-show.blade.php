@@ -28,6 +28,27 @@
     </div>
     
     <div class="flex flex-wrap items-center gap-2">
+        @if($incident->source_ip && $incident->workflow_status !== 'resolved')
+            @php
+                $isBlocked = $incident->responses()->where('action', 'block_ip')->whereIn('status', ['pending', 'executed'])->exists();
+            @endphp
+            @if(!$isBlocked)
+                <form action="{{ route('security.incidents.responses.store', $incident) }}" method="POST" onsubmit="return confirm('Masukkan IP ini ke antrean pemblokiran (HitL)?');">
+                    @csrf
+                    <input type="hidden" name="action" value="block_ip">
+                    <input type="hidden" name="description" value="Blokir IP Address {{ $incident->source_ip }} (Tindakan dari Detail Insiden)">
+                    <input type="hidden" name="status" value="pending">
+                    <button type="submit" class="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-lg text-sm font-semibold transition inline-flex items-center gap-1 shadow-lg shadow-rose-600/20">
+                        ⚡ Draft Blokir IP
+                    </button>
+                </form>
+            @else
+                <span class="px-4 py-2 bg-slate-800/80 text-emerald-400 border border-slate-700 rounded-lg text-sm font-semibold inline-flex items-center gap-2 cursor-default">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> IP Terblokir / Antrean
+                </span>
+            @endif
+        @endif
+
         @if($incident->workflow_status === 'reported')
             <form action="{{ route('security.incidents.workflow', $incident) }}" method="POST">
                 @csrf
