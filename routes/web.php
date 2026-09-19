@@ -101,6 +101,7 @@ Route::middleware('auth')->group(function () {
 
         // Threat Actors & HitL Approvals
         Route::get('/threat-actors', [\App\Http\Controllers\DashboardController::class, 'threatActors'])->name('threat-actors.index');
+        Route::post('/threat-actors/bulk-block', [\App\Http\Controllers\DashboardController::class, 'draftQuickBlockBulk'])->name('threat-actors.bulk-block');
         Route::get('/approvals', [\App\Http\Controllers\DashboardController::class, 'socApprovals'])->name('approvals.index');
 
         // Rules

@@ -193,15 +193,21 @@ class DashboardController extends Controller
         ));
     }
 
-    public function threatActors()
+    public function threatActors(Request $request)
     {
-        $topAttackers = \App\Models\SecurityEvent::selectRaw('source_ip, COUNT(*) as total_events')
+        $query = \App\Models\SecurityEvent::selectRaw('source_ip, COUNT(*) as total_events, GROUP_CONCAT(DISTINCT hostname SEPARATOR ", ") as targeted_agents')
             ->whereNotNull('source_ip')
             ->where('source_ip', '!=', '')
-            ->where('source_ip', '!=', '127.0.0.1')
-            ->groupBy('source_ip')
+            ->where('source_ip', '!=', '127.0.0.1');
+            
+        if ($request->filled('search')) {
+            $query->where('source_ip', 'like', "%{$request->search}%");
+        }
+
+        $topAttackers = $query->groupBy('source_ip')
             ->orderByDesc('total_events')
-            ->paginate(20);
+            ->paginate(20)
+            ->withQueryString();
 
         foreach ($topAttackers as $attacker) {
             $rep = \App\Models\IpReputation::where('ip_address', $attacker->source_ip)->first();
@@ -229,6 +235,51 @@ class DashboardController extends Controller
             ->paginate(20);
             
         return view('security.approvals', compact('pendingActions'));
+    }
+
+    public function draftQuickBlockBulk(Request $request)
+    {
+        $request->validate([
+            'ips' => 'required|array',
+            'ips.*' => 'ip'
+        ]);
+
+        $addedCount = 0;
+        
+        foreach($request->ips as $ip) {
+            // Check globally if already drafted/blocked
+            $exists = \App\Models\SecurityIncidentResponse::where('action', 'block_ip')
+                ->where('description', 'like', "%{$ip}%")
+                ->whereIn('status', ['pending', 'executed'])
+                ->exists();
+                
+            if(!$exists) {
+                $incident = \App\Models\SecurityIncident::where('source_ip', $ip)->first();
+                if (!$incident) {
+                    $incident = \App\Models\SecurityIncident::create([
+                        'title' => 'Tindakan Proaktif (Bulk): Threat Intel IP ' . $ip,
+                        'incident_type' => 'malware',
+                        'severity' => 'high',
+                        'workflow_status' => 'investigation',
+                        'source_ip' => $ip,
+                        'description' => 'Insiden dibuat otomatis dari Bulk Action Dashboard SOC untuk menindaklanjuti IP berbahaya.',
+                        'organization_id' => \App\Models\Organization::first()->id ?? 1,
+                        'reporter_id' => \Illuminate\Support\Facades\Auth::id() ?? 1,
+                        'first_seen_at' => now(),
+                        'last_seen_at' => now(),
+                    ]);
+                }
+                
+                $incident->responses()->create([
+                    'action' => 'block_ip',
+                    'description' => 'Memblokir IP Address ' . $ip . ' di firewall/iptables.',
+                    'status' => 'pending',
+                ]);
+                $addedCount++;
+            }
+        }
+
+        return back()->with('success', "Berhasil memasukkan $addedCount IP ke antrean persetujuan (HitL).");
     }
 
     public function draftQuickBlock(Request $request)
