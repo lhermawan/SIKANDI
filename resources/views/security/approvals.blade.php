@@ -1,8 +1,8 @@
-@extends('layouts.app')
+@extends("layouts.app")
 
-@section('title', 'SOC Approvals')
+@section("title", "SOC Approvals")
 
-@section('content')
+@section("content")
 <div class="mb-6">
     <div class="flex flex-col md:flex-row justify-between md:items-end gap-4">
         <div>
@@ -13,7 +13,7 @@
 </div>
 
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-    @forelse( as )
+    @forelse($pendingActions as $action)
         <div class="bg-slate-900 border border-amber-900/50 rounded-2xl p-5 shadow-xl relative overflow-hidden">
             <div class="absolute right-0 top-0 text-amber-900/10">
                 <svg class="w-32 h-32 -mr-8 -mt-8" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
@@ -25,28 +25,27 @@
                         <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                         Menunggu Eksekusi
                     </span>
-                    <span class="text-xs text-slate-500">{{ ->created_at->diffForHumans() }}</span>
+                    <span class="text-xs text-slate-500">{{ $action->created_at->diffForHumans() }}</span>
                 </div>
                 
                 <h3 class="text-base font-bold text-slate-200 mb-1">
-                    {{ ->action === 'block_ip' ? 'Blokir IP Address' : (->action === 'isolate_server' ? 'Isolasi Server' : ->action) }}
+                    {{ $action->action === "block_ip" ? "Blokir IP Address" : ($action->action === "isolate_server" ? "Isolasi Server" : $action->action) }}
                 </h3>
                 
-                @if(->incident)
+                @if($action->incident)
                 <p class="text-xs text-blue-400 mb-2">
-                    <a href="{{ route('security.incidents.show', ->incident) }}" class="hover:underline font-mono">
-                        {{ ->incident->incident_code }} - {{ ->incident->title }}
+                    <a href="{{ route("security.incidents.show", $action->incident) }}" class="hover:underline font-mono">
+                        {{ $action->incident->incident_code }} - {{ $action->incident->title }}
                     </a>
                 </p>
                 @endif
                 
-                <p class="text-sm text-slate-400 mb-5">{{ ->description }}</p>
+                <p class="text-sm text-slate-400 mb-5">{{ $action->description }}</p>
                 
                 <div class="flex gap-2 mt-auto">
-                    <button onclick="confirmAction('{{ route('security.incidents.responses.execute', ->id) }}', '{{ addslashes(->description) }}')" class="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold py-2 rounded-lg transition shadow-lg shadow-indigo-600/20">
+                    <button onclick="confirmAction('{{ route('security.incidents.responses.execute', $action->id) }}', '{{ addslashes($action->description) }}')" class="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold py-2 rounded-lg transition shadow-lg shadow-indigo-600/20">
                         Setujui & Eksekusi
                     </button>
-                    <!-- Fitur Reject Opsional, bisa pakai route execute dengan params atau manual delete -->
                 </div>
             </div>
         </div>
@@ -63,9 +62,9 @@
     @endforelse
 </div>
 
-@if(->hasPages())
+@if($pendingActions->hasPages())
 <div class="mt-6">
-    {{ ->links() }}
+    {{ $pendingActions->links() }}
 </div>
 @endif
 
@@ -75,8 +74,8 @@
 
 <script>
 function confirmAction(url, desc) {
-    if(confirm('Apakah Anda yakin ingin menyetujui dan mengeksekusi tindakan ini?\n\n' + desc)) {
-        let form = document.getElementById('execute-form');
+    if(confirm("Apakah Anda yakin ingin menyetujui dan mengeksekusi tindakan ini?\n\n" + desc)) {
+        let form = document.getElementById("execute-form");
         form.action = url;
         form.submit();
     }
