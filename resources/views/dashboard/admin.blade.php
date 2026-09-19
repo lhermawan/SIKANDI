@@ -162,12 +162,20 @@
                                 @endif
                             </td>
                             <td class="py-3 text-right">
-                                @if($attacker->reputation && $attacker->reputation->abuse_confidence_score >= 80)
+                                @if($attacker->block_status === 'executed')
+                                    <span class="px-3 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 rounded shadow-sm text-[10px] font-bold uppercase inline-flex items-center gap-1">
+                                        <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> TERBLOKIR
+                                    </span>
+                                @elseif($attacker->block_status === 'pending')
+                                    <span class="px-3 py-1 bg-amber-500/10 text-amber-400 border border-amber-500/30 rounded shadow-sm text-[10px] font-bold uppercase inline-flex items-center gap-1 animate-pulse">
+                                        <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> MENUNGGU VERIFIKASI
+                                    </span>
+                                @elseif($attacker->reputation && $attacker->reputation->abuse_confidence_score >= 80)
                                     <form action="{{ route('admin.soc.quick-block') }}" method="POST" class="inline-block" onsubmit="return confirm('Masukkan IP ini ke antrean pemblokiran (HitL)?');">
                                         @csrf
                                         <input type="hidden" name="ip" value="{{ $attacker->source_ip }}">
-                                        <button type="submit" class="px-3 py-1 bg-rose-500 hover:bg-rose-600 text-white font-bold rounded shadow-lg shadow-rose-500/20 transition text-[10px] uppercase">
-                                            ⚡ Draft Blokir
+                                        <button type="submit" class="px-3 py-1 bg-rose-500 hover:bg-rose-600 text-white font-bold rounded shadow-lg shadow-rose-500/20 transition text-[10px] uppercase inline-flex items-center gap-1">
+                                            ⚡ DRAFT BLOKIR
                                         </button>
                                     </form>
                                 @endif

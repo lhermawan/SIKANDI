@@ -165,6 +165,14 @@ class DashboardController extends Controller
                 \App\Jobs\EnrichIpReputationJob::dispatch($attacker->source_ip);
             }
             $attacker->reputation = $rep;
+
+            // Cek apakah IP ini sudah ada di antrean blokir atau sudah diblokir
+            $blockResponse = \App\Models\SecurityIncidentResponse::where('action', 'block_ip')
+                ->where('description', 'like', "%{$attacker->source_ip}%")
+                ->whereIn('status', ['pending', 'executed'])
+                ->first();
+                
+            $attacker->block_status = $blockResponse ? $blockResponse->status : null;
         }
 
         $recentCis = ConfigurationItem::with(['ciType', 'organization'])->latest()->take(5)->get();
