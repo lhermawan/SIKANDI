@@ -9,6 +9,7 @@ from collectors.services import ServiceCollector
 from security.correlation import CorrelationEngine
 from security.deduplication import Deduplicator
 import threading
+import subprocess
 
 logging.basicConfig(level=logging.INFO, format='%(levelname)s %(message)s')
 logger = logging.getLogger(__name__)
@@ -32,11 +33,12 @@ class SikandiAgent:
 
         logger.info("Agent registered. Starting collectors...")
         
-        # Start background threads for heartbeat and metrics
+        # Start background threads for heartbeat, metrics, security, and actions
         threading.Thread(target=self._heartbeat_loop, daemon=True).start()
         threading.Thread(target=self._metrics_loop, daemon=True).start()
         threading.Thread(target=self._security_loop, daemon=True).start()
         threading.Thread(target=self._queue_flush_loop, daemon=True).start()
+        threading.Thread(target=self._blacklist_loop, daemon=True).start()
 
         try:
             while True:
@@ -151,6 +153,30 @@ class SikandiAgent:
                     self.queue.clear_batch(events)
             time.sleep(5)
             
+    def _blacklist_loop(self):
+        self.blocked_ips = set()
+        logger.info("Blacklist Sync loop started.")
+        while True:
+            try:
+                blacklist = self.api.fetch_blacklist()
+                if blacklist:
+                    for ip in blacklist:
+                        if ip not in self.blocked_ips:
+                            logger.warning(f"ACTION REQUIRED: Blocking IP {ip} via iptables")
+                            # Eksekusi blokir via iptables
+                            # Note: membutuhkan hak akses sudo/root
+                            try:
+                                subprocess.run(['iptables', '-A', 'INPUT', '-s', ip, '-j', 'DROP'], check=True)
+                                logger.info(f"SUCCESS: IP {ip} blocked successfully.")
+                                self.blocked_ips.add(ip)
+                            except subprocess.CalledProcessError as e:
+                                logger.error(f"FAILED to block IP {ip}: {e}")
+            except Exception as e:
+                logger.error(f"Blacklist loop error: {e}")
+            
+            # Polling setiap 30 detik
+            time.sleep(30)
+
     def _run_test_mode(self):
         logger.info("Test mode: Generating mock security events...")
         event = {

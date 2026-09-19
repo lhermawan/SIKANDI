@@ -103,3 +103,13 @@ class ApiClient:
         except Exception as e:
             logger.error(f"Events failed: {e}")
             return False
+
+    def fetch_blacklist(self):
+        try:
+            resp = requests.get(f"{self.base_url}/blacklist", headers=self._headers(), timeout=self.timeout)
+            if resp.status_code == 200:
+                return resp.json().get('blacklist', [])
+            return []
+        except Exception as e:
+            logger.error(f"Failed to fetch blacklist: {e}")
+            return []

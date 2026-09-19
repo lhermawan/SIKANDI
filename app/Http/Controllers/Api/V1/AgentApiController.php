@@ -188,4 +188,26 @@ class AgentApiController extends Controller
 
         return response()->json(['message' => 'Event recorded']);
     }
+
+    public function blacklist(Request $request)
+    {
+        // Ambil semua IP yang telah diputuskan untuk diblokir oleh SOC (Human-in-the-Loop)
+        // Yaitu response dengan action = 'block_ip' dan status = 'executed'
+        $responses = \App\Models\SecurityIncidentResponse::where('action', 'block_ip')
+                        ->where('status', 'executed')
+                        ->get();
+
+        $ips = [];
+        foreach ($responses as $response) {
+            // Ekstrak IP dari deskripsi menggunakan Regex
+            preg_match('/\b\d{1,3}(\.\d{1,3}){3}\b/', $response->description ?? '', $matches);
+            if (!empty($matches[0])) {
+                $ips[] = $matches[0];
+            }
+        }
+
+        return response()->json([
+            'blacklist' => array_values(array_unique($ips))
+        ]);
+    }
 }
