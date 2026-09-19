@@ -262,7 +262,7 @@
                     </div>
                     <div>
                         <dt class="text-slate-500 text-xs mb-1">Duration</dt>
-                        <dd class="text-slate-300">{{ $incident->first_seen_at->diffForHumans($incident->last_seen_at, true) }}</dd>
+                        <dd class="text-slate-300">{{ $incident->first_seen_at && $incident->last_seen_at ? $incident->first_seen_at->diffForHumans($incident->last_seen_at, true) : '-' }}</dd>
                     </div>
                 </dl>
             </div>
