@@ -166,7 +166,12 @@ class SikandiAgent:
                             # Eksekusi blokir via iptables
                             # Note: membutuhkan hak akses sudo/root
                             try:
-                                subprocess.run(['iptables', '-A', 'INPUT', '-s', ip, '-j', 'DROP'], check=True)
+                                # Gunakan -I INPUT 1 agar rule blokir ada di urutan paling atas
+                                subprocess.run(['iptables', '-I', 'INPUT', '1', '-s', ip, '-j', 'DROP'], check=True)
+                                
+                                # Opsional: jika menggunakan Docker, kita juga perlu nge-drop di chain DOCKER-USER
+                                # subprocess.run(['iptables', '-I', 'DOCKER-USER', '1', '-s', ip, '-j', 'DROP'], check=False, stderr=subprocess.DEVNULL)
+                                
                                 logger.info(f"SUCCESS: IP {ip} blocked successfully.")
                                 self.blocked_ips.add(ip)
                             except subprocess.CalledProcessError as e:
