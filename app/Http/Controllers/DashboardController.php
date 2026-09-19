@@ -203,6 +203,8 @@ class DashboardController extends Controller
                 'description' => 'Insiden dibuat otomatis dari Dashboard SOC untuk menindaklanjuti IP berbahaya (Malicious) berdasarkan laporan AbuseIPDB.',
                 'organization_id' => \App\Models\Organization::first()->id ?? 1,
                 'reporter_id' => \Illuminate\Support\Facades\Auth::id(),
+                'first_seen_at' => now(),
+                'last_seen_at' => now(),
             ]);
         }
 

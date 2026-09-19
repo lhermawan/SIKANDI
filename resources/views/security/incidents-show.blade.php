@@ -100,7 +100,7 @@
                 <!-- First Seen RAW -->
                 <div class="relative pl-6">
                     <span class="absolute -left-[5px] top-1.5 w-2.5 h-2.5 rounded-full bg-slate-600 ring-4 ring-slate-900"></span>
-                    <div class="text-xs text-slate-500 mb-1">{{ $incident->first_seen_at->format('10 M Y H:i:s') }}</div>
+                    <div class="text-xs text-slate-500 mb-1">{{ $incident->first_seen_at?->format('10 M Y H:i:s') }}</div>
                     <div class="font-medium text-slate-300 uppercase">First Attack Activity</div>
                     @if($incident->source_ip)
                         <div class="text-sm text-slate-400 mt-1 font-mono">source: {{ $incident->source_ip }}</div>
@@ -110,7 +110,7 @@
                 <!-- The Detection -->
                 <div class="relative pl-6">
                     <span class="absolute -left-[5.5px] top-1.5 w-3 h-3 rounded-full bg-rose-500 ring-4 ring-slate-900 shadow-[0_0_10px_rgba(244,63,94,0.6)]"></span>
-                    <div class="text-xs text-rose-500/70 mb-1">{{ $incident->created_at->format('10 M Y H:i:s') }}</div>
+                    <div class="text-xs text-rose-500/70 mb-1">{{ $incident->created_at?->format('10 M Y H:i:s') }}</div>
                     <div class="font-bold text-rose-400 uppercase">{{ $incident->detection_rule }} DETECTED</div>
                     <div class="text-sm text-slate-300 mt-1 max-h-48 overflow-y-auto pr-2 prose prose-sm prose-invert">{!! nl2br(e($incident->description)) !!}</div>
                 </div>
@@ -119,7 +119,7 @@
                 @foreach($incident->responses as $resp)
                 <div class="relative pl-6">
                     <span class="absolute -left-[5px] top-1.5 w-2.5 h-2.5 rounded-full bg-blue-500 ring-4 ring-slate-900"></span>
-                    <div class="text-xs text-slate-500 mb-1">{{ $resp->performed_at->format('10 M Y H:i:s') }}</div>
+                    <div class="text-xs text-slate-500 mb-1">{{ $resp->performed_at?->format('10 M Y H:i:s') }}</div>
                     <div class="font-medium text-blue-400 uppercase">RESPONSE: {{ $resp->action }}</div>
                     <div class="text-sm text-slate-400 mt-1">{{ $resp->description }}</div>
                     <div class="text-xs text-slate-500 mt-1">By: {{ $resp->performer->name ?? 'System' }}</div>
@@ -129,7 +129,7 @@
                 <!-- Last Seen RAW -->
                 <div class="relative pl-6">
                     <span class="absolute -left-[5px] top-1.5 w-2.5 h-2.5 rounded-full bg-slate-500 ring-4 ring-slate-900"></span>
-                    <div class="text-xs text-slate-500 mb-1">{{ $incident->last_seen_at->format('10 M Y H:i:s') }}</div>
+                    <div class="text-xs text-slate-500 mb-1">{{ $incident->last_seen_at?->format('10 M Y H:i:s') }}</div>
                     <div class="font-medium text-slate-400 uppercase">Last Attack Activity</div>
                 </div>
             </div>
@@ -157,7 +157,7 @@
                             <div class="flex-1">
                                 <p class="text-sm {{ $task->status === 'COMPLETED' ? 'text-slate-400 line-through' : 'text-slate-200' }}">{{ $task->task }}</p>
                                 @if($task->status === 'COMPLETED')
-                                    <p class="text-[10px] text-slate-500 mt-0.5">Checked by {{ $task->checker->name ?? 'User' }} at {{ $task->checked_at->format('H:i') }}</p>
+                                    <p class="text-[10px] text-slate-500 mt-0.5">Checked by {{ $task->checker->name ?? 'User' }} at {{ $task->checked_at?->format('H:i') }}</p>
                                 @endif
                             </div>
                         </div>
@@ -180,7 +180,7 @@
                         </div>
                         <div>
                             <p class="text-sm font-medium text-slate-200">{{ $ev->title }}</p>
-                            <p class="text-xs text-slate-500">{{ $ev->type }} • {{ $ev->collected_at->format('10 M H:i') }}</p>
+                            <p class="text-xs text-slate-500">{{ $ev->type }} • {{ $ev->collected_at?->format('10 M H:i') }}</p>
                             @if($ev->description)
                                 <p class="text-xs text-slate-400 mt-1">{{ $ev->description }}</p>
                             @endif
@@ -254,11 +254,11 @@
                     </div>
                     <div>
                         <dt class="text-slate-500 text-xs mb-1">First Seen</dt>
-                        <dd class="text-slate-300">{{ $incident->first_seen_at->format('10 M Y H:i:s') }}</dd>
+                        <dd class="text-slate-300">{{ $incident->first_seen_at?->format('10 M Y H:i:s') }}</dd>
                     </div>
                     <div>
                         <dt class="text-slate-500 text-xs mb-1">Last Seen</dt>
-                        <dd class="text-slate-300">{{ $incident->last_seen_at->format('10 M Y H:i:s') }}</dd>
+                        <dd class="text-slate-300">{{ $incident->last_seen_at?->format('10 M Y H:i:s') }}</dd>
                     </div>
                     <div>
                         <dt class="text-slate-500 text-xs mb-1">Duration</dt>
