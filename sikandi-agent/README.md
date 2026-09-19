@@ -8,7 +8,7 @@ SIKANDI-Agent adalah *service* berbasis Python ringan yang dipasang pada server/
 
 Sebelum melakukan instalasi pada server target, pastikan server memenuhi spesifikasi berikut:
 1. **OS Linux** (Ubuntu / Debian / CentOS / RHEL)
-2. **Python 3.8** atau lebih baru, beserta `pip` (`python3-pip`).
+2. **Python 3.8** atau lebih baru, beserta `pip` (`python3-pip`) dan modul Virtual Environment (`python3-venv`).
 3. **Akses Root / Sudo:** Mutlak dibutuhkan karena agen akan membaca log sistem (`/var/log/auth.log`) dan mengeksekusi blokir via `iptables`.
 4. (Opsional) **Node.js & PM2** untuk menjalankan agen di latar belakang *(background service)*.
 
@@ -23,17 +23,24 @@ sudo cp -r sikandi-agent /opt/
 cd /opt/sikandi-agent
 ```
 
-### 2. Install Dependencies
-Pastikan berada di dalam folder agen, lalu jalankan instalasi *library* Python:
+### 2. Install Dependencies (Menggunakan Virtual Environment)
+Pada OS Linux versi modern (seperti Ubuntu 23+ atau Debian 12+), instalasi *library* secara global diblokir untuk keamanan. Kita akan menggunakan praktik terbaik yaitu *Virtual Environment* (VENV):
+
 ```bash
-sudo apt update && sudo apt install python3-pip -y
-sudo pip3 install -r requirements.txt
+# Install paket venv jika belum tersedia di OS
+sudo apt update && sudo apt install python3-pip python3-venv -y
+
+# Buat environment terisolasi bernama 'venv' di dalam folder sikandi-agent
+python3 -m venv venv
+
+# Instal library dari requirements.txt langsung ke dalam venv
+sudo ./venv/bin/pip3 install -r requirements.txt
 ```
 
 ### 3. Konfigurasi Awal (config.yaml)
 Buka file `config.yaml` menggunakan editor teks (nano/vim):
 ```bash
-nano config.yaml
+sudo nano config.yaml
 ```
 Sesuaikan `url` dengan alamat server utama SIKANDI Anda:
 ```yaml
@@ -48,9 +55,9 @@ api:
 ## 🔐 Proses Registrasi Agent
 
 SIKANDI mengamankan setiap agen menggunakan sistem *Zero Trust Registration*.
-Jalankan perintah berikut untuk memulai registrasi:
+Jalankan perintah berikut untuk memulai registrasi menggunakan Python bawaan venv:
 ```bash
-sudo python3 agent.py
+sudo ./venv/bin/python3 agent.py
 ```
 
 **Alur Registrasi:**
@@ -73,8 +80,8 @@ Karena agen butuh akses *root* untuk memodifikasi `iptables`, pastikan PM2 dijal
 # Install PM2 jika belum ada (membutuhkan Node.js)
 sudo npm install -g pm2
 
-# Jalankan Agent menggunakan interpreter Python3
-sudo pm2 start agent.py --name "sikandi-agent" --interpreter python3
+# Jalankan Agent menggunakan interpreter Python3 yang ada di venv
+sudo pm2 start agent.py --name "sikandi-agent" --interpreter ./venv/bin/python3
 
 # Simpan state PM2 agar auto-start saat server restart
 sudo pm2 save
@@ -99,6 +106,6 @@ Agen SIKANDI memiliki *thread* **Blacklist Sync** yang berjalan setiap 30 detik.
 ## 🧪 Testing Mode
 Jika Anda ingin mengetes alur insiden keamanan dari agen ke Dashboard *tanpa* melakukan serangan sungguhan, jalankan menggunakan argumen test:
 ```bash
-sudo python3 agent.py --test-security
+sudo ./venv/bin/python3 agent.py --test-security
 ```
 Agen akan mengirimkan serangan *Brute Force Mockup* ke dashboard setiap 10 detik.
