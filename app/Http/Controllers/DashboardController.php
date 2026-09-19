@@ -106,7 +106,7 @@ class DashboardController extends Controller
             return view('dashboard.management', compact('stats', 'criticalRisks'));
         }
 
-        // 4. Default: Super Admin & Admin Persandian
+        // 4. Default: Super Admin & Admin Persandian (SOC Dashboard)
         $stats = [
             'total_ci' => ConfigurationItem::count(),
             'total_assets' => Asset::count(),
@@ -118,13 +118,53 @@ class DashboardController extends Controller
             'websites_down' => Website::where('current_status', 'down')->count(),
             'security_incidents' => SecurityIncident::where('workflow_status', '!=', 'closed')->count(),
             'critical_risks' => Risk::where('risk_level', 'critical')->count(),
+            'high_severity_alerts' => SecurityIncident::where('severity', 'high')->orWhere('severity', 'critical')->where('workflow_status', '!=', 'closed')->count(),
+            'total_security_events' => \App\Models\SecurityEvent::count(),
         ];
+
+        // SOC Analytics: Incident Trend (Last 7 Days)
+        $last7Days = collect(range(6, 0))->map(fn($day) => now()->subDays($day)->format('Y-m-d'));
+        
+        $trendData = SecurityIncident::where('created_at', '>=', now()->subDays(6)->startOfDay())
+            ->selectRaw('DATE(created_at) as date, COUNT(*) as total')
+            ->groupBy('date')
+            ->pluck('total', 'date');
+
+        $incidentTrend = $last7Days->map(fn($date) => [
+            'date' => $date,
+            'total' => $trendData->get($date, 0)
+        ]);
+
+        // SOC Analytics: Incidents by Severity
+        $severityData = SecurityIncident::selectRaw('severity, COUNT(*) as total')
+            ->groupBy('severity')
+            ->pluck('total', 'severity');
+        
+        $severityChart = [
+            'Critical' => $severityData->get('critical', 0),
+            'High' => $severityData->get('high', 0),
+            'Medium' => $severityData->get('medium', 0),
+            'Low' => $severityData->get('low', 0),
+        ];
+
+        // SOC Analytics: Top 5 Attacker IPs
+        $topAttackers = \App\Models\SecurityEvent::selectRaw('source_ip, COUNT(*) as total_events')
+            ->whereNotNull('source_ip')
+            ->where('source_ip', '!=', '')
+            ->where('source_ip', '!=', '127.0.0.1')
+            ->groupBy('source_ip')
+            ->orderByDesc('total_events')
+            ->take(5)
+            ->get();
 
         $recentCis = ConfigurationItem::with(['ciType', 'organization'])->latest()->take(5)->get();
         $recentTickets = Ticket::with(['requester', 'organization', 'service'])->latest()->take(5)->get();
         $recentIncidents = Incident::with(['configurationItem', 'assignedTechnician'])->latest()->take(5)->get();
         $recentAuditLogs = AuditLog::latest('created_at')->take(6)->get();
 
-        return view('dashboard.admin', compact('stats', 'recentCis', 'recentTickets', 'recentIncidents', 'recentAuditLogs'));
+        return view('dashboard.admin', compact(
+            'stats', 'recentCis', 'recentTickets', 'recentIncidents', 
+            'recentAuditLogs', 'incidentTrend', 'severityChart', 'topAttackers'
+        ));
     }
 }

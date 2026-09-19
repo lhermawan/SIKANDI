@@ -125,7 +125,7 @@ Route::middleware('auth')->group(function () {
     Route::delete('/documents/{document}', [KnowledgeController::class, 'destroyDocument'])->name('documents.destroy');
 
     // Administration (Roles & OPD)
-    Route::prefix('admin')->name('admin.')->group(function () {
+    Route::prefix('admin')->name('admin.')->middleware(['role:Super Admin|Admin Persandian'])->group(function () {
         Route::get('/users', [UserController::class, 'index'])->name('users.index');
         Route::post('/users', [UserController::class, 'store'])->name('users.store');
         Route::get('/users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');

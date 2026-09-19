@@ -7,7 +7,7 @@ use App\Models\SecurityEvent;
 use App\Models\SecurityIncident;
 use App\Models\SecurityRule;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class SecurityDetectionEngine
 {
@@ -15,7 +15,7 @@ class SecurityDetectionEngine
     {
         // 1. Store the raw event
         $event = SecurityEvent::create([
-            'event_id' => $payload['event_id'] ?? (string)\Illuminate\Support\Str::uuid(),
+            'event_id' => $payload['event_id'] ?? (string) Str::uuid(),
             'agent_id' => $agent->id,
             'timestamp' => isset($payload['timestamp']) && is_numeric($payload['timestamp'])
     ? Carbon::createFromTimestamp($payload['timestamp'], 'Asia/Jakarta')
@@ -27,7 +27,7 @@ class SecurityDetectionEngine
             'source_ip' => $payload['source_ip'] ?? null,
             'process' => $payload['process'] ?? null,
             'severity' => strtolower($payload['severity'] ?? 'info'),
-            'risk_score' => (int)($payload['risk_score'] ?? 0),
+            'risk_score' => (int) ($payload['risk_score'] ?? 0),
             'reason' => $payload['reason'] ?? null,
             'metadata' => $payload['metadata'] ?? null,
         ]);
@@ -40,7 +40,7 @@ class SecurityDetectionEngine
     {
         // Source of truth: Security Rules from database
         $rules = SecurityRule::where('enabled', true)->get();
-        
+
         foreach ($rules as $rule) {
             if ($rule->name === 'BRUTE_FORCE') {
                 $this->detectBruteForce($event, $rule);
@@ -52,14 +52,66 @@ class SecurityDetectionEngine
                 $this->detectAccountCompromise($event, $rule);
             }
         }
+
+        // Auto-incident for high/critical severity events from agent or explicit suspicious events
+        $this->detectAgentSuspiciousEvents($event);
+    }
+
+    protected function detectAgentSuspiciousEvents(SecurityEvent $event)
+    {
+        // Only process events that are inherently suspicious or have high/critical severity
+        $suspiciousTypes = ['suspicious_process', 'privilege_escalation', 'persistence', 'suspicious_network'];
+        $isSuspiciousType = in_array(strtolower($event->event_type), $suspiciousTypes);
+        $isHighSeverity = in_array(strtolower($event->severity), ['high', 'critical']);
+
+        if (! $isSuspiciousType && ! $isHighSeverity) {
+            return;
+        }
+
+        // Check if there is already an open incident for this event type on this agent
+        $incident = SecurityIncident::where('detection_rule', strtoupper($event->event_type))
+            ->where('agent_id', $event->agent_id)
+            ->whereNotIn('workflow_status', ['closed', 'resolved', 'false_positive'])
+            ->first();
+
+        $riskScore = max($event->risk_score, $isHighSeverity ? 80 : 50);
+
+        if ($incident) {
+            $incident->last_seen_at = $event->timestamp;
+            $incident->risk_score = max($incident->risk_score, $riskScore);
+            $incident->description .= "\n\nUpdate: Detected another occurrence at ".$event->timestamp."\nDetails: ".($event->reason ?? $event->action);
+            $incident->save();
+
+            $event->update(['incident_id' => $incident->id]);
+        } else {
+            $newIncident = SecurityIncident::create([
+                'title' => 'Suspicious Activity: '.str_replace('_', ' ', strtoupper($event->event_type)),
+                'incident_type' => 'malware', // or 'suspicious_activity' if valid
+                'severity' => $event->severity === 'critical' ? 'critical' : ($isHighSeverity ? 'high' : 'medium'),
+                'workflow_status' => 'reported',
+                'edr_status' => 'OPEN',
+                'organization_id' => 1,
+                'ci_id' => $event->agent->ci_id ?? null,
+                'reporter_id' => 1,
+                'description' => "Automated detection from SIEM Agent.\nEvent Type: {$event->event_type}\nAction: {$event->action}\nReason: ".($event->reason ?? 'N/A')."\nProcess: ".($event->process ?? 'N/A'),
+                'risk_score' => $riskScore,
+                'source_ip' => $event->source_ip,
+                'username' => $event->username,
+                'detection_rule' => strtoupper($event->event_type),
+                'first_seen_at' => $event->timestamp,
+                'last_seen_at' => $event->timestamp,
+                'agent_id' => $event->agent_id,
+            ]);
+            $event->update(['incident_id' => $newIncident->id]);
+        }
     }
 
     protected function classifyEvent(SecurityEvent $event): array
     {
-        $type   = strtolower($event->event_type ?? '');
+        $type = strtolower($event->event_type ?? '');
         $action = strtolower($event->action ?? '');
 
-        $combined = $type . '_' . $action;
+        $combined = $type.'_'.$action;
 
         $isLoginFail = in_array($type, ['login', 'authentication', 'auth', 'loginfailed', 'login_failed', 'failed_login'])
             || in_array($action, ['failed', 'login_failed', 'failure', 'denied'])
@@ -78,7 +130,7 @@ class SecurityDetectionEngine
         }
 
         return [
-            'is_login_fail'    => $isLoginFail,
+            'is_login_fail' => $isLoginFail,
             'is_login_success' => $isLoginSuccess,
         ];
     }
@@ -92,13 +144,13 @@ class SecurityDetectionEngine
         return $query->where(function ($q) {
             $q->where(function ($inner) {
                 $inner->whereIn('event_type', ['login', 'authentication', 'auth'])
-                      ->whereIn('action', ['failed', 'login_failed', 'failure', 'denied']);
+                    ->whereIn('action', ['failed', 'login_failed', 'failure', 'denied']);
             })->orWhereIn('event_type', [
                 'loginfailed', 'login_failed', 'failed_login',
                 'LOGINFAILED', 'LOGIN_FAILED', 'FAILED_LOGIN',
             ]);
         })->where('event_type', '!=', 'brute_force')
-          ->where('event_type', '!=', 'correlation');
+            ->where('event_type', '!=', 'correlation');
     }
 
     protected function queryLoginSuccess($query)
@@ -106,7 +158,7 @@ class SecurityDetectionEngine
         return $query->where(function ($q) {
             $q->where(function ($inner) {
                 $inner->whereIn('event_type', ['login', 'authentication', 'auth'])
-                      ->whereIn('action', ['success', 'login_success', 'accepted', 'ok']);
+                    ->whereIn('action', ['success', 'login_success', 'accepted', 'ok']);
             })->orWhereIn('event_type', ['loginsuccess', 'login_success', 'success_login']);
         });
     }
@@ -114,12 +166,18 @@ class SecurityDetectionEngine
     protected function detectBruteForce(SecurityEvent $event, SecurityRule $rule)
     {
         $cls = $this->classifyEvent($event);
-        if (! $cls['is_login_fail']) return;
-        
-        // Ensure this is a raw event, not a prior detection feedback loop
-        if ($event->event_type === 'correlation' || $event->event_type === 'brute_force') return;
+        if (! $cls['is_login_fail']) {
+            return;
+        }
 
-        if (empty($event->source_ip) || empty($event->username)) return;
+        // Ensure this is a raw event, not a prior detection feedback loop
+        if ($event->event_type === 'correlation' || $event->event_type === 'brute_force') {
+            return;
+        }
+
+        if (empty($event->source_ip) || empty($event->username)) {
+            return;
+        }
 
         // Detection Window (e.g., 300 seconds)
         $since = Carbon::parse($event->timestamp)->subSeconds($rule->time_window_seconds);
@@ -136,7 +194,7 @@ class SecurityDetectionEngine
                 triggerEvent: $event,
                 rule: $rule,
                 ruleName: $rule->name,
-                description: "", // Will be dynamically generated
+                description: '', // Will be dynamically generated
                 incidentType: 'unauthorized_access',
                 fingerprint: ['source_ip' => $event->source_ip, 'username' => $event->username]
             );
@@ -146,9 +204,15 @@ class SecurityDetectionEngine
     protected function detectUsernameEnumeration(SecurityEvent $event, SecurityRule $rule)
     {
         $cls = $this->classifyEvent($event);
-        if (! $cls['is_login_fail']) return;
-        if ($event->event_type === 'correlation' || $event->event_type === 'brute_force') return;
-        if (empty($event->source_ip)) return;
+        if (! $cls['is_login_fail']) {
+            return;
+        }
+        if ($event->event_type === 'correlation' || $event->event_type === 'brute_force') {
+            return;
+        }
+        if (empty($event->source_ip)) {
+            return;
+        }
 
         $since = Carbon::parse($event->timestamp)->subSeconds($rule->time_window_seconds);
 
@@ -164,14 +228,14 @@ class SecurityDetectionEngine
         if ($uniqueCount >= $rule->threshold) {
             $sprayingRule = SecurityRule::where('name', 'PASSWORD_SPRAYING')->where('enabled', true)->first();
             $escalateToSpraying = $sprayingRule && $uniqueCount >= $sprayingRule->threshold;
-            
+
             $activeRule = $escalateToSpraying ? $sprayingRule : $rule;
-            
+
             $this->createOrUpdateIncident(
                 triggerEvent: $event,
                 rule: $activeRule,
                 ruleName: $activeRule->name,
-                description: "", // Dynamically generated
+                description: '', // Dynamically generated
                 incidentType: 'unauthorized_access',
                 fingerprint: ['source_ip' => $event->source_ip],
                 targetUsernames: $uniqueUsernames->toArray()
@@ -187,8 +251,12 @@ class SecurityDetectionEngine
     protected function detectAccountCompromise(SecurityEvent $event, SecurityRule $rule)
     {
         $cls = $this->classifyEvent($event);
-        if (! $cls['is_login_success']) return;
-        if (empty($event->source_ip) || empty($event->username)) return;
+        if (! $cls['is_login_success']) {
+            return;
+        }
+        if (empty($event->source_ip) || empty($event->username)) {
+            return;
+        }
 
         $since = Carbon::parse($event->timestamp)->subSeconds($rule->time_window_seconds);
 
@@ -205,7 +273,7 @@ class SecurityDetectionEngine
                 triggerEvent: $event,
                 rule: $rule,
                 ruleName: $rule->name,
-                description: "", // Dynamically generated
+                description: '', // Dynamically generated
                 incidentType: 'account_compromise',
                 fingerprint: ['source_ip' => $event->source_ip, 'username' => $event->username]
             );
@@ -214,7 +282,9 @@ class SecurityDetectionEngine
 
     protected function createOrUpdateIncident(SecurityEvent $triggerEvent, SecurityRule $rule, $ruleName, $description, $incidentType, $fingerprint = [], $targetUsernames = [])
     {
-        if (!$rule->auto_incident) return;
+        if (! $rule->auto_incident) {
+            return;
+        }
 
         // 1. INCIDENT LIFETIME DEDUPLICATION
         // We look for any OPEN incident for this campaign regardless of the strict 300s detection window.
@@ -222,37 +292,41 @@ class SecurityDetectionEngine
         $query = SecurityIncident::whereIn('detection_rule', [$ruleName, 'USERNAME_ENUMERATION', 'PASSWORD_SPRAYING'])
             ->where('agent_id', $triggerEvent->agent_id)
             ->whereNotIn('workflow_status', ['closed', 'resolved', 'false_positive']);
-            
+
         if (isset($fingerprint['source_ip'])) {
             $query->where('source_ip', $fingerprint['source_ip']);
         }
         if (isset($fingerprint['username']) && $ruleName !== 'PASSWORD_SPRAYING' && $ruleName !== 'USERNAME_ENUMERATION') {
             $query->where('username', $fingerprint['username']);
         }
-        
+
         $incident = $query->first(); // Get the existing active campaign
 
         // 2. GATHER ALL RAW EVENTS FOR THIS CAMPAIGN
         $relatedEventsQuery = SecurityEvent::where('agent_id', $triggerEvent->agent_id);
         if ($incident) {
             // Include events already linked + new ones from this source
-            $relatedEventsQuery->where(function($q) use ($incident, $fingerprint, $triggerEvent, $ruleName) {
+            $relatedEventsQuery->where(function ($q) use ($incident, $fingerprint, $triggerEvent, $ruleName) {
                 $q->where('incident_id', $incident->id)
-                  ->orWhere(function($sub) use ($fingerprint, $triggerEvent, $ruleName) {
-                      $sub->whereNull('incident_id')
-                          ->where('timestamp', '>=', Carbon::parse($triggerEvent->timestamp)->subHours(24));
-                      if (isset($fingerprint['source_ip'])) $sub->where('source_ip', $fingerprint['source_ip']);
-                      if (isset($fingerprint['username']) && !in_array($ruleName, ['PASSWORD_SPRAYING', 'USERNAME_ENUMERATION'])) {
-                          $sub->where('username', $fingerprint['username']);
-                      }
-                  });
+                    ->orWhere(function ($sub) use ($fingerprint, $triggerEvent, $ruleName) {
+                        $sub->whereNull('incident_id')
+                            ->where('timestamp', '>=', Carbon::parse($triggerEvent->timestamp)->subHours(24));
+                        if (isset($fingerprint['source_ip'])) {
+                            $sub->where('source_ip', $fingerprint['source_ip']);
+                        }
+                        if (isset($fingerprint['username']) && ! in_array($ruleName, ['PASSWORD_SPRAYING', 'USERNAME_ENUMERATION'])) {
+                            $sub->where('username', $fingerprint['username']);
+                        }
+                    });
             });
         } else {
             // New campaign, gather events in recent window
             $relatedEventsQuery->whereNull('incident_id')
                 ->where('timestamp', '>=', Carbon::parse($triggerEvent->timestamp)->subHours(24));
-            if (isset($fingerprint['source_ip'])) $relatedEventsQuery->where('source_ip', $fingerprint['source_ip']);
-            if (isset($fingerprint['username']) && !in_array($ruleName, ['PASSWORD_SPRAYING', 'USERNAME_ENUMERATION'])) {
+            if (isset($fingerprint['source_ip'])) {
+                $relatedEventsQuery->where('source_ip', $fingerprint['source_ip']);
+            }
+            if (isset($fingerprint['username']) && ! in_array($ruleName, ['PASSWORD_SPRAYING', 'USERNAME_ENUMERATION'])) {
                 $relatedEventsQuery->where('username', $fingerprint['username']);
             }
         }
@@ -260,9 +334,9 @@ class SecurityDetectionEngine
         // Only aggregate RAW events for stats
         $rawEventsQuery = (clone $relatedEventsQuery)->where('event_type', '!=', 'correlation')->where('event_type', '!=', 'brute_force');
         $rawLoginsQuery = $this->queryLoginFailed(clone $rawEventsQuery);
-        
+
         $rawCount = $rawLoginsQuery->count();
-        $detectionCount = (clone $relatedEventsQuery)->where(function($q) {
+        $detectionCount = (clone $relatedEventsQuery)->where(function ($q) {
             $q->where('event_type', 'correlation')->orWhere('event_type', 'brute_force');
         })->count();
         $totalCount = $relatedEventsQuery->count();
@@ -280,19 +354,19 @@ class SecurityDetectionEngine
         // 4. RISK SCORING (Explainable)
         $riskScore = $rule->risk_score;
         $riskFactors = ["{$ruleName} rule bonus" => "+{$rule->risk_score}"];
-        
+
         // Check for evidence: Account Compromise (Successful login after failures)
         $hasSuccess = $this->queryLoginSuccess(clone $rawEventsQuery)->exists();
         if ($hasSuccess) {
             $riskScore += 30;
-            $riskFactors["Successful login detected"] = "+30";
+            $riskFactors['Successful login detected'] = '+30';
         }
-        
+
         // Check for Privilege Escalation
         $hasPrivEsc = (clone $rawEventsQuery)->where('event_type', 'privilege_escalation')->exists();
         if ($hasPrivEsc) {
             $riskScore += 40;
-            $riskFactors["Privilege escalation"] = "+40";
+            $riskFactors['Privilege escalation'] = '+40';
         }
 
         $finalRisk = min(100, max(0, $riskScore));
@@ -301,24 +375,24 @@ class SecurityDetectionEngine
         $descLines = [];
         if (in_array($ruleName, ['PASSWORD_SPRAYING', 'USERNAME_ENUMERATION'])) {
             $uniqueCount = count($targetUsernames);
-            $descLines[] = "Detected login attempts against {$uniqueCount} unique usernames from IP " . ($fingerprint['source_ip'] ?? 'unknown') . ".";
+            $descLines[] = "Detected login attempts against {$uniqueCount} unique usernames from IP ".($fingerprint['source_ip'] ?? 'unknown').'.';
             $descLines[] = "\nTarget Usernames:";
             foreach ($targetUsernames as $u) {
                 $descLines[] = "- {$u}";
             }
         } else {
-            $descLines[] = "Multiple failed authentication attempts detected for user " . ($fingerprint['username'] ?? 'unknown') . " from IP " . ($fingerprint['source_ip'] ?? 'unknown') . ".";
+            $descLines[] = 'Multiple failed authentication attempts detected for user '.($fingerprint['username'] ?? 'unknown').' from IP '.($fingerprint['source_ip'] ?? 'unknown').'.';
         }
 
         $descLines[] = "\n=== Attack Summary ===";
         $descLines[] = "Raw Login Attempts : {$rawCount}";
         $descLines[] = "Detection Events   : {$detectionCount}";
         $descLines[] = "Total Related      : {$totalCount}";
-        
+
         $descLines[] = "\n=== Risk Explanation ===";
         $descLines[] = "Final Risk Score   : {$finalRisk} / 100";
         foreach ($riskFactors as $factor => $val) {
-            $descLines[] = str_pad($factor, 26) . " " . $val;
+            $descLines[] = str_pad($factor, 26).' '.$val;
         }
 
         $finalDescription = implode("\n", $descLines);
@@ -326,8 +400,10 @@ class SecurityDetectionEngine
         // 6. SAVE INCIDENT
         if ($incident) {
             $incident->last_seen_at = $lastSeen;
-            if ($firstSeen < $incident->first_seen_at) $incident->first_seen_at = $firstSeen;
-            
+            if ($firstSeen < $incident->first_seen_at) {
+                $incident->first_seen_at = $firstSeen;
+            }
+
             $incident->risk_score = $finalRisk; // Do not use MAX(), use exactly calculated risk from evidence
             $incident->description = $finalDescription;
 
@@ -336,12 +412,14 @@ class SecurityDetectionEngine
                 $incident->title = str_replace('_', ' ', $ruleName);
                 $incident->severity = $rule->severity;
             }
-            
+
             // Only update severity if it's strictly increasing or adapting to the current rule config
-            if ($rule->severity === 'critical') $incident->severity = 'critical';
+            if ($rule->severity === 'critical') {
+                $incident->severity = 'critical';
+            }
 
             $incident->save();
-            
+
             // Attach all matched events
             $triggerEvent->update(['incident_id' => $incident->id]);
             (clone $relatedEventsQuery)->whereNull('incident_id')->update(['incident_id' => $incident->id]);
@@ -369,6 +447,4 @@ class SecurityDetectionEngine
             (clone $relatedEventsQuery)->whereNull('incident_id')->update(['incident_id' => $newIncident->id]);
         }
     }
-
 }
-

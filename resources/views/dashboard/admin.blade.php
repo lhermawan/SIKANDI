@@ -78,19 +78,76 @@
         <!-- Tickets & Incidents -->
         <a href="{{ route('incidents.index') }}" class="p-5 rounded-2xl bg-slate-900/80 border border-slate-800/80 hover:border-rose-500/40 transition group">
             <div class="flex items-center justify-between mb-3">
-                <span class="text-xs font-medium text-slate-400">Insiden Aktif</span>
+                <span class="text-xs font-medium text-slate-400">Security Alerts</span>
                 <div class="w-9 h-9 rounded-xl bg-rose-500/10 text-rose-400 flex items-center justify-center group-hover:scale-110 transition">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                 </div>
             </div>
             <div class="flex items-baseline justify-between">
                 <div class="flex items-center gap-2">
-                    <span class="text-2xl font-bold text-rose-400">{{ $stats['active_incidents'] }}</span>
-                    <span class="text-xs text-slate-500">({{ $stats['open_tickets'] }} Tiket)</span>
+                    <span class="text-2xl font-bold text-rose-400">{{ $stats['high_severity_alerts'] }}</span>
+                    <span class="text-xs text-slate-500">Alerts Tinggi</span>
                 </div>
-                <span class="text-[11px] text-rose-400 font-medium flex items-center gap-1">Kelola &rarr;</span>
+                <span class="text-[11px] text-rose-400 font-medium flex items-center gap-1">Investigasi &rarr;</span>
             </div>
         </a>
+    </div>
+
+    <!-- SOC Analytics Section -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Incident Trend Chart -->
+        <div class="lg:col-span-2 bg-slate-900/80 border border-slate-800/80 rounded-2xl p-5">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <h2 class="font-bold text-white text-base">Tren Serangan (7 Hari Terakhir)</h2>
+                    <p class="text-xs text-slate-400">Akumulasi insiden keamanan harian</p>
+                </div>
+            </div>
+            <div id="incidentTrendChart" class="h-64 w-full"></div>
+        </div>
+
+        <!-- Severity Distribution & Top Attackers -->
+        <div class="space-y-6">
+            <div class="bg-slate-900/80 border border-slate-800/80 rounded-2xl p-5">
+                <h2 class="font-bold text-white text-base mb-1">Distribusi Risiko</h2>
+                <p class="text-xs text-slate-400 mb-4">Proporsi insiden berdasarkan level</p>
+                <div id="severityDonutChart" class="flex justify-center h-48 w-full"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Top Attackers Table -->
+    <div class="bg-slate-900/80 border border-slate-800/80 rounded-2xl p-5">
+        <h2 class="font-bold text-white text-base mb-1">Top 5 Threat Actors (IPs)</h2>
+        <p class="text-xs text-slate-400 mb-4">Alamat IP dengan aktivitas serangan tertinggi</p>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+                <thead>
+                    <tr class="border-b border-slate-800 text-slate-400 font-medium">
+                        <th class="pb-2.5">Source IP</th>
+                        <th class="pb-2.5">Total Hits/Events</th>
+                        <th class="pb-2.5">Reputasi / Status</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800/60 text-slate-300">
+                    @forelse($topAttackers as $attacker)
+                        <tr class="hover:bg-slate-800/40 transition">
+                            <td class="py-3 font-mono text-rose-400 font-bold">{{ $attacker->source_ip }}</td>
+                            <td class="py-3 font-semibold">{{ number_format($attacker->total_events) }} events</td>
+                            <td class="py-3">
+                                <span class="px-2 py-0.5 rounded text-[10px] bg-rose-500/20 text-rose-300">
+                                    Malicious (Terindikasi)
+                                </span>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="3" class="py-4 text-center text-slate-500">Belum ada data attacker terdeteksi.</td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
     </div>
 
     <!-- Main Content: CMDB & Recent Items -->
@@ -280,3 +337,79 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 1. Incident Trend Chart (Line)
+    const trendData = @json($incidentTrend);
+    const dates = trendData.map(d => {
+        const dateObj = new Date(d.date);
+        return dateObj.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+    });
+    const totals = trendData.map(d => d.total);
+
+    const trendOptions = {
+        series: [{
+            name: 'Insiden Baru',
+            data: totals
+        }],
+        chart: {
+            height: 250,
+            type: 'area',
+            fontFamily: 'inherit',
+            toolbar: { show: false },
+            zoom: { enabled: false },
+            background: 'transparent'
+        },
+        colors: ['#3b82f6'],
+        dataLabels: { enabled: false },
+        stroke: { curve: 'smooth', width: 2 },
+        fill: {
+            type: 'gradient',
+            gradient: { shadeIntensity: 1, opacityFrom: 0.4, opacityTo: 0.05, stops: [0, 100] }
+        },
+        xaxis: {
+            categories: dates,
+            axisBorder: { show: false },
+            axisTicks: { show: false },
+            labels: { style: { colors: '#64748b', fontSize: '11px' } }
+        },
+        yaxis: {
+            labels: { style: { colors: '#64748b', fontSize: '11px' } }
+        },
+        grid: { borderColor: '#1e293b', strokeDashArray: 4, yaxis: { lines: { show: true } } },
+        theme: { mode: 'dark' }
+    };
+    new ApexCharts(document.querySelector("#incidentTrendChart"), trendOptions).render();
+
+    // 2. Severity Donut Chart
+    const severityData = @json($severityChart);
+    const donutOptions = {
+        series: [severityData.Critical, severityData.High, severityData.Medium, severityData.Low],
+        chart: { type: 'donut', height: 200, background: 'transparent' },
+        labels: ['Critical', 'High', 'Medium', 'Low'],
+        colors: ['#f43f5e', '#f59e0b', '#eab308', '#3b82f6'],
+        stroke: { show: true, colors: ['#0f172a'], width: 2 },
+        dataLabels: { enabled: false },
+        plotOptions: {
+            pie: {
+                donut: {
+                    size: '75%',
+                    labels: {
+                        show: true,
+                        name: { show: false },
+                        value: { show: true, fontSize: '24px', fontWeight: 600, color: '#f8fafc' },
+                        total: { show: true, showAlways: true, label: 'Total', fontSize: '10px', color: '#64748b' }
+                    }
+                }
+            }
+        },
+        legend: { position: 'right', fontSize: '11px', labels: { colors: '#cbd5e1' }, markers: { width: 8, height: 8 } },
+        theme: { mode: 'dark' }
+    };
+    new ApexCharts(document.querySelector("#severityDonutChart"), donutOptions).render();
+});
+</script>
+@endpush
