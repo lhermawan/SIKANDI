@@ -171,18 +171,35 @@ class SecurityIncidentController extends Controller
         $validated = $request->validate([
             'action' => 'required|string',
             'description' => 'required|string',
+            'status' => 'nullable|string'
         ]);
 
         $incident->responses()->create([
             'action' => $validated['action'],
             'description' => $validated['description'],
-            'status' => 'COMPLETED',
+            'status' => $validated['status'] ?? 'COMPLETED',
             'performed_by' => Auth::id(),
             'performed_at' => now(),
         ]);
 
         $this->logAudit($incident, 'performed response', null, $validated['action']);
         return back()->with('success', 'Tindakan respons berhasil dicatat.');
+    }
+
+    public function executeAction(\App\Models\SecurityIncidentResponse $response, \App\Services\ResponseExecutorService $executorService)
+    {
+        // Pengecekan Role (Hanya Super Admin)
+        if (!Auth::user()->hasRole('Super Admin') && !Auth::user()->hasRole('Admin Persandian')) {
+            abort(403, 'Akses Ditolak. Hanya Super Admin yang dapat mengeksekusi tindakan SOC.');
+        }
+
+        $success = $executorService->execute($response, Auth::id());
+
+        if ($success) {
+            return back()->with('success', 'Tindakan eksekusi berhasil dijalankan: ' . $response->result);
+        }
+
+        return back()->with('error', 'Gagal mengeksekusi tindakan. Silakan periksa log.');
     }
 
     public function storeEvidence(Request $request, SecurityIncident $incident)

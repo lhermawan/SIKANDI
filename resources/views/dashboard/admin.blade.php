@@ -292,6 +292,39 @@
 
         <!-- Col 3: Audit Trail Timeline & Quick Info -->
         <div class="space-y-6">
+            <!-- PENDING ACTIONS CARD -->
+            <div class="bg-slate-900/80 border border-amber-500/30 rounded-2xl p-5 shadow-[0_0_15px_rgba(245,158,11,0.1)]">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h2 class="font-bold text-amber-400 text-base">Menunggu Eksekusi</h2>
+                        <p class="text-xs text-slate-400">Persetujuan tindakan SOC (HitL)</p>
+                    </div>
+                    <span class="bg-amber-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">{{ $pendingActions->count() }}</span>
+                </div>
+                
+                <div class="space-y-3">
+                    @forelse($pendingActions as $action)
+                        <div class="bg-slate-800/50 p-3 rounded-lg border border-slate-700">
+                            <div class="flex justify-between items-start mb-2">
+                                <span class="text-xs font-bold text-slate-200">
+                                    {{ $action->action === 'block_ip' ? 'Blokir IP Address' : ($action->action === 'isolate_server' ? 'Isolasi Server' : $action->action) }}
+                                </span>
+                                <span class="text-[10px] text-slate-400">{{ $action->created_at->diffForHumans() }}</span>
+                            </div>
+                            <p class="text-[11px] text-slate-400 mb-3">{{ $action->description }}</p>
+                            <button onclick="confirmAction('{{ route('security.incidents.responses.execute', $action->id) }}', '{{ $action->description }}')" class="w-full bg-indigo-500 hover:bg-indigo-600 text-white text-xs py-1.5 rounded transition">
+                                Verifikasi & Eksekusi
+                            </button>
+                        </div>
+                    @empty
+                        <div class="text-center py-4">
+                            <span class="text-emerald-400/20 text-4xl block mb-2">✔️</span>
+                            <p class="text-xs text-slate-500">Tidak ada tindakan pending.</p>
+                        </div>
+                    @endforelse
+                </div>
+            </div>
+
             <!-- Audit Trail Card -->
             <div class="bg-slate-900/80 border border-slate-800/80 rounded-2xl p-5">
                 <div class="flex items-center justify-between mb-4">
@@ -361,7 +394,39 @@
 
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
+function confirmAction(url, detail) {
+    Swal.fire({
+        title: 'Verifikasi Eksekusi?',
+        html: `<p class="text-sm text-slate-300 mb-4">Anda akan mengeksekusi tindakan berikut secara langsung ke infrastruktur:</p>
+               <div class="bg-slate-900 p-3 rounded text-left text-xs font-mono text-amber-400 border border-slate-700">${detail}</div>`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#4f46e5', // indigo-600
+        cancelButtonColor: '#334155',  // slate-700
+        confirmButtonText: 'Ya, Eksekusi Sekarang!',
+        cancelButtonText: 'Batal',
+        background: '#1e293b',
+        color: '#f8fafc',
+    }).then((result) => {
+        if (result.isConfirmed) {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = url;
+            
+            const csrf = document.createElement('input');
+            csrf.type = 'hidden';
+            csrf.name = '_token';
+            csrf.value = '{{ csrf_token() }}';
+            
+            form.appendChild(csrf);
+            document.body.appendChild(form);
+            form.submit();
+        }
+    });
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     // 1. Incident Trend Chart (Line)
     const trendData = @json($incidentTrend);

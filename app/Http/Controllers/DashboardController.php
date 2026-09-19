@@ -172,9 +172,16 @@ class DashboardController extends Controller
         $recentIncidents = Incident::with(['configurationItem', 'assignedTechnician'])->latest()->take(5)->get();
         $recentAuditLogs = AuditLog::latest('created_at')->take(6)->get();
 
+        // Rekomendasi Tindakan (Pending SOC Actions)
+        $pendingActions = \App\Models\SecurityIncidentResponse::where('status', 'pending')
+            ->with('incident')
+            ->latest()
+            ->take(5)
+            ->get();
+
         return view('dashboard.admin', compact(
             'stats', 'recentCis', 'recentTickets', 'recentIncidents', 
-            'recentAuditLogs', 'incidentTrend', 'severityChart', 'topAttackers'
+            'recentAuditLogs', 'incidentTrend', 'severityChart', 'topAttackers', 'pendingActions'
         ));
     }
 }
