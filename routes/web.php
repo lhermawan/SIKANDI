@@ -99,6 +99,10 @@ Route::middleware('auth')->group(function () {
         Route::post('/incidents/{incident}/assign', [\App\Http\Controllers\SecurityIncidentController::class, 'assign'])->name('incidents.assign');
         Route::delete('/incidents/{incident}', [\App\Http\Controllers\SecurityIncidentController::class, 'destroy'])->name('incidents.destroy');
 
+        // Threat Actors & HitL Approvals
+        Route::get('/threat-actors', [\App\Http\Controllers\DashboardController::class, 'threatActors'])->name('threat-actors.index');
+        Route::get('/approvals', [\App\Http\Controllers\DashboardController::class, 'socApprovals'])->name('approvals.index');
+
         // Rules
         Route::get('/rules', [\App\Http\Controllers\SecurityRuleController::class, 'index'])->name('rules.index');
         Route::post('/rules', [\App\Http\Controllers\SecurityRuleController::class, 'store'])->name('rules.store');

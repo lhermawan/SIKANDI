@@ -193,6 +193,44 @@ class DashboardController extends Controller
         ));
     }
 
+    public function threatActors()
+    {
+        $topAttackers = \App\Models\SecurityEvent::selectRaw('source_ip, COUNT(*) as total_events')
+            ->whereNotNull('source_ip')
+            ->where('source_ip', '!=', '')
+            ->where('source_ip', '!=', '127.0.0.1')
+            ->groupBy('source_ip')
+            ->orderByDesc('total_events')
+            ->paginate(20);
+
+        foreach ($topAttackers as $attacker) {
+            $rep = \App\Models\IpReputation::where('ip_address', $attacker->source_ip)->first();
+            if (!$rep) {
+                \App\Jobs\EnrichIpReputationJob::dispatch($attacker->source_ip);
+            }
+            $attacker->reputation = $rep;
+
+            $blockResponse = \App\Models\SecurityIncidentResponse::where('action', 'block_ip')
+                ->where('description', 'like', "%{$attacker->source_ip}%")
+                ->whereIn('status', ['pending', 'executed'])
+                ->first();
+                
+            $attacker->block_status = $blockResponse ? $blockResponse->status : null;
+        }
+
+        return view('security.threat-actors', compact('topAttackers'));
+    }
+
+    public function socApprovals()
+    {
+        $pendingActions = \App\Models\SecurityIncidentResponse::where('status', 'pending')
+            ->with('incident')
+            ->latest()
+            ->paginate(20);
+            
+        return view('security.approvals', compact('pendingActions'));
+    }
+
     public function draftQuickBlock(Request $request)
     {
         $request->validate(['ip' => 'required|ip']);
