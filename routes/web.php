@@ -160,4 +160,9 @@ Route::middleware('auth')->group(function () {
     Route::post('/agents/{agent}/link', [\App\Http\Controllers\AgentController::class, 'link'])->name('agents.link');
     Route::delete('/agents/{agent}', [\App\Http\Controllers\AgentController::class, 'destroy'])->name('agents.destroy');
     Route::post('/agents/registration-token', [\App\Http\Controllers\AgentController::class, 'generateRegistrationToken'])->name('agents.token');
+
+    // Agent Disk Manager
+    Route::get('/agents/{agent}/disk', [\App\Http\Controllers\DiskManagerController::class, 'show'])->name('agents.disk.show');
+    Route::post('/agents/{agent}/disk/scan', [\App\Http\Controllers\DiskManagerController::class, 'requestScan'])->name('agents.disk.scan');
+    Route::post('/agents/{agent}/disk/delete', [\App\Http\Controllers\DiskManagerController::class, 'requestDelete'])->name('agents.disk.delete');
 });

@@ -50,6 +50,8 @@ Route::prefix('v1')->group(function () {
         Route::post('/agent/services', [\App\Http\Controllers\Api\V1\AgentApiController::class, 'services']);
         Route::post('/agent/events', [\App\Http\Controllers\Api\V1\AgentApiController::class, 'events']);
         Route::get('/agent/blacklist', [\App\Http\Controllers\Api\V1\AgentApiController::class, 'blacklist']);
+        Route::get('/agent/commands', [\App\Http\Controllers\Api\V1\AgentApiController::class, 'fetchCommands']);
+        Route::post('/agent/commands/{id}/result', [\App\Http\Controllers\Api\V1\AgentApiController::class, 'submitCommandResult']);
     });
 
     // Agent Registration (using static or UI-generated token, checked inside controller)

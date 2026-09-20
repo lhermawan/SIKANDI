@@ -29,6 +29,9 @@
         @endif
 
         @if($agent->status !== 'revoked')
+            <a href="{{ route('agents.disk.show', $agent) }}" class="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded-lg font-medium transition">
+                Kelola Disk
+            </a>
             <form action="{{ route('agents.revoke', $agent) }}" method="POST" onsubmit="return confirm('Revoke akses agent ini? Agent tidak akan bisa mengirim data lagi.');">
                 @csrf
                 <button class="bg-rose-950 text-rose-500 hover:bg-rose-900 hover:text-rose-400 border border-rose-900 text-sm px-4 py-2 rounded-lg font-medium transition">

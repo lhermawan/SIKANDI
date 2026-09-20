@@ -58,4 +58,9 @@ class Agent extends Model
     {
         return $this->hasMany(AgentEvent::class);
     }
+
+    public function commands(): HasMany
+    {
+        return $this->hasMany(AgentCommand::class);
+    }
 }

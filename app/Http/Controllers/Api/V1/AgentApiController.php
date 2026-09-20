@@ -210,4 +210,43 @@ class AgentApiController extends Controller
             'blacklist' => array_values(array_unique($ips))
         ]);
     }
+
+    public function fetchCommands(Request $request)
+    {
+        $agent = $request->user();
+        if (!$agent || $agent->status !== 'approved') {
+            return response()->json(['message' => 'Unauthorized or agent not approved.'], 403);
+        }
+
+        $commands = \App\Models\AgentCommand::where('agent_id', $agent->id)
+            ->where('status', 'pending')
+            ->get();
+
+        foreach ($commands as $command) {
+            $command->update(['status' => 'processing']);
+        }
+
+        return response()->json([
+            'commands' => $commands->map(function($c) {
+                return [
+                    'id' => $c->id,
+                    'action' => $c->action,
+                    'paths' => $c->paths
+                ];
+            })
+        ]);
+    }
+
+    public function submitCommandResult(Request $request, $id)
+    {
+        $agent = $request->user();
+        $command = \App\Models\AgentCommand::where('agent_id', $agent->id)->findOrFail($id);
+
+        $command->update([
+            'status' => 'completed',
+            'result' => $request->input('result')
+        ]);
+
+        return response()->json(['message' => 'Command result recorded.']);
+    }
 }
