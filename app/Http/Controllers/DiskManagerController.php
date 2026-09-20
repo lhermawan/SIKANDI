@@ -24,7 +24,13 @@ class DiskManagerController extends Controller
 
     public function requestScan(Request $request, Agent $agent)
     {
-        $paths = $request->input('paths', ['/var/cache', '/tmp']);
+        $paths = $request->input('paths', [
+            '/var/cache', 
+            '/tmp',
+            '/var/www',
+            '/root/.npm',
+            '/root/.cache'
+        ]);
 
         $agent->commands()->create([
             'action' => 'scan_disk',
