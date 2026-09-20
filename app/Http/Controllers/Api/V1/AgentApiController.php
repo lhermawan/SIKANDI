@@ -214,8 +214,8 @@ class AgentApiController extends Controller
     public function fetchCommands(Request $request)
     {
         $agent = $request->user();
-        if (!$agent || $agent->status !== 'approved') {
-            return response()->json(['message' => 'Unauthorized or agent not approved.'], 403);
+        if (!$agent || !in_array($agent->status, ['approved', 'online'])) {
+            return response()->json(['message' => 'Unauthorized or agent not active.'], 403);
         }
 
         $commands = \App\Models\AgentCommand::where('agent_id', $agent->id)
