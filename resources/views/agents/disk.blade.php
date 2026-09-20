@@ -75,9 +75,24 @@
                             function renderTree($nodes) {
                                 $html = '<ul class="ml-4 border-l pl-2 border-gray-300 dark:border-gray-600">';
                                 foreach($nodes as $node) {
-                                    $html .= '<li class="my-1">';
-                                    $html .= '<label class="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 p-1 rounded">';
-                                    $html .= '<input type="checkbox" name="paths[]" value="' . htmlspecialchars($node['path']) . '" class="rounded text-blue-600 file-checkbox">';
+                                    $hasChildren = !empty($node['children']);
+                                    $html .= '<li class="my-1 node-item">';
+                                    
+                                    // Wrapper for the row
+                                    $html .= '<div class="flex items-center space-x-2 hover:bg-gray-50 dark:hover:bg-gray-700 p-1 rounded">';
+                                    
+                                    // Expand/Collapse toggle button
+                                    if ($hasChildren) {
+                                        $html .= '<button type="button" class="w-5 h-5 flex items-center justify-center text-gray-500 hover:text-gray-700 transition" onclick="toggleFolder(this)">
+                                                    <svg class="w-4 h-4 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                                  </button>';
+                                    } else {
+                                        $html .= '<div class="w-5 h-5"></div>'; // Spacer for alignment
+                                    }
+
+                                    // Checkbox and Label
+                                    $html .= '<label class="flex items-center space-x-2 cursor-pointer flex-1">';
+                                    $html .= '<input type="checkbox" name="paths[]" value="' . htmlspecialchars($node['path']) . '" class="rounded text-blue-600 file-checkbox" onchange="toggleChildren(this)">';
                                     
                                     if ($node['type'] === 'directory') {
                                         $html .= '<svg class="w-5 h-5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"></path></svg>';
@@ -85,12 +100,15 @@
                                         $html .= '<svg class="w-5 h-5 text-gray-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"></path></svg>';
                                     }
                                     
-                                    $html .= '<span class="text-sm font-medium text-gray-700 dark:text-gray-300">' . htmlspecialchars($node['name']) . '</span>';
-                                    $html .= '<span class="text-xs text-gray-500 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded ml-auto">' . formatBytes($node['size']) . '</span>';
+                                    $html .= '<span class="text-sm font-medium text-gray-700 dark:text-gray-300 break-all">' . htmlspecialchars($node['name']) . '</span>';
+                                    $html .= '<span class="text-xs text-gray-500 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded ml-auto whitespace-nowrap">' . formatBytes($node['size']) . '</span>';
                                     $html .= '</label>';
+                                    $html .= '</div>';
                                     
-                                    if(!empty($node['children'])) {
+                                    if($hasChildren) {
+                                        $html .= '<div class="children-container">';
                                         $html .= renderTree($node['children']);
+                                        $html .= '</div>';
                                     }
                                     $html .= '</li>';
                                 }
@@ -100,6 +118,33 @@
                         @endphp
                         
                         {!! renderTree($latestScan->result) !!}
+
+                        <script>
+                            function toggleFolder(btn) {
+                                const li = btn.closest('li');
+                                const container = li.querySelector(':scope > .children-container');
+                                const svg = btn.querySelector('svg');
+                                
+                                if (container.style.display === 'none') {
+                                    container.style.display = 'block';
+                                    svg.classList.remove('-rotate-90');
+                                } else {
+                                    container.style.display = 'none';
+                                    svg.classList.add('-rotate-90');
+                                }
+                            }
+                            
+                            function toggleChildren(checkbox) {
+                                const li = checkbox.closest('li');
+                                const container = li.querySelector(':scope > .children-container');
+                                if (container) {
+                                    const childCheckboxes = container.querySelectorAll('input[type="checkbox"]');
+                                    childCheckboxes.forEach(cb => {
+                                        cb.checked = checkbox.checked;
+                                    });
+                                }
+                            }
+                        </script>
                     </div>
                     
                     <button type="submit" class="bg-red-600 text-white px-4 py-2 rounded shadow hover:bg-red-700 transition" onclick="return confirm('Yakin ingin menghapus data yang dipilih secara permanen dari server?');">
