@@ -148,6 +148,9 @@ Route::middleware('auth')->group(function () {
         Route::put('/organizations/{organization}', [OrganizationController::class, 'update'])->name('organizations.update');
         Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('audit-logs');
         
+        // Roles Management
+        Route::resource('roles', \App\Http\Controllers\Admin\RoleController::class)->except(['show']);
+
         // Master Data: Lokasi & Ruang
         Route::resource('locations', \App\Http\Controllers\Admin\LocationController::class)->except(['create', 'show', 'edit']);
         Route::patch('locations/{location}/toggle', [\App\Http\Controllers\Admin\LocationController::class, 'toggle'])->name('locations.toggle');
