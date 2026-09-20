@@ -59,7 +59,7 @@
                     setTimeout(() => { window.location.reload(); }, 5000);
                 </script>
             @elseif($latestScan->status == 'completed' && $latestScan->result)
-                <form action="{{ route('agents.disk.delete', $agent) }}" method="POST">
+                <form id="delete-form" action="{{ route('agents.disk.delete', $agent) }}" method="POST">
                     @csrf
                     <div class="max-h-96 overflow-y-auto mb-4 border rounded p-4 dark:border-gray-700">
                         @php
@@ -147,10 +147,61 @@
                         </script>
                     </div>
                     
-                    <button type="submit" class="bg-red-600 text-white px-4 py-2 rounded shadow hover:bg-red-700 transition" onclick="return confirm('Yakin ingin menghapus data yang dipilih secara permanen dari server?');">
+                    <button type="button" class="bg-red-600 text-white px-4 py-2 rounded shadow hover:bg-red-700 transition" onclick="showConfirmModal()">
                         Hapus Data Terpilih
                     </button>
                 </form>
+
+                <!-- Modal Konfirmasi Hapus -->
+                <div id="confirmModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full mx-4 p-6">
+                        <div class="flex items-center text-red-600 mb-4">
+                            <svg class="w-8 h-8 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                            <h3 class="text-xl font-bold text-gray-900 dark:text-white">Konfirmasi Penghapusan Permanen</h3>
+                        </div>
+                        <p class="text-gray-600 dark:text-gray-300 mb-4">Anda akan menghapus <span id="selected-count" class="font-bold"></span> item berikut secara permanen dari server agen. Tindakan ini tidak dapat dibatalkan!</p>
+                        
+                        <div class="max-h-64 overflow-y-auto bg-gray-50 dark:bg-gray-900 p-4 rounded border dark:border-gray-700 mb-6 text-sm text-gray-700 dark:text-gray-400 font-mono">
+                            <ul id="selected-list" class="list-disc pl-5 space-y-1"></ul>
+                        </div>
+                        
+                        <div class="flex justify-end space-x-3">
+                            <button type="button" onclick="closeConfirmModal()" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition font-medium">Batal</button>
+                            <button type="button" onclick="submitDelete()" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition shadow font-medium">Ya, Eksekusi Hapus</button>
+                        </div>
+                    </div>
+                </div>
+
+                <script>
+                    function showConfirmModal() {
+                        const checked = document.querySelectorAll('.file-checkbox:checked');
+                        if (checked.length === 0) {
+                            alert('Silakan pilih setidaknya satu data (folder/file) yang ingin dihapus terlebih dahulu.');
+                            return;
+                        }
+                        
+                        const listEl = document.getElementById('selected-list');
+                        listEl.innerHTML = '';
+                        document.getElementById('selected-count').textContent = checked.length;
+                        
+                        checked.forEach(cb => {
+                            const li = document.createElement('li');
+                            li.textContent = cb.value;
+                            listEl.appendChild(li);
+                        });
+                        
+                        document.getElementById('confirmModal').classList.remove('hidden');
+                    }
+                    
+                    function closeConfirmModal() {
+                        document.getElementById('confirmModal').classList.add('hidden');
+                    }
+                    
+                    function submitDelete() {
+                        document.getElementById('delete-form').submit();
+                    }
+                </script>
+
             @endif
         </div>
     @endif
