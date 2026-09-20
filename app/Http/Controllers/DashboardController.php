@@ -195,7 +195,7 @@ class DashboardController extends Controller
 
     public function threatActors(Request $request)
     {
-        $query = \App\Models\SecurityEvent::selectRaw('source_ip, COUNT(*) as total_events, GROUP_CONCAT(DISTINCT hostname SEPARATOR ", ") as targeted_agents')
+        $query = \App\Models\SecurityEvent::selectRaw('source_ip, COUNT(*) as total_events, GROUP_CONCAT(DISTINCT hostname SEPARATOR ", ") as targeted_agents, MAX(created_at) as last_seen')
             ->whereNotNull('source_ip')
             ->where('source_ip', '!=', '')
             ->where('source_ip', '!=', '127.0.0.1');
@@ -205,10 +205,11 @@ class DashboardController extends Controller
         }
 
         $topAttackers = $query->groupBy('source_ip')
-            ->orderByDesc('total_events')
+            ->orderByRaw('last_seen DESC') // Mengurutkan yang terbaru/scanning
             ->paginate(20)
             ->withQueryString();
 
+        // Separate whitelisted and non-whitelisted to custom sort, or handle in loop
         foreach ($topAttackers as $attacker) {
             $rep = \App\Models\IpReputation::where('ip_address', $attacker->source_ip)->first();
             if (!$rep) {
@@ -224,9 +225,39 @@ class DashboardController extends Controller
             $attacker->block_status = $blockResponse ? $blockResponse->status : null;
         }
 
+        // We can sort the collection after pagination so that unblocked ones appear on top of blocked ones
+        $topAttackers->setCollection(
+            $topAttackers->getCollection()->sortBy(function ($attacker) {
+                // Return 0 if not blocked, 1 if pending, 2 if executed. (To make unblocked top)
+                if ($attacker->block_status === 'executed') return 2;
+                if ($attacker->block_status === 'pending') return 1;
+                return 0;
+            })->values()
+        );
+
         return view('security.threat-actors', compact('topAttackers'));
     }
 
+    public function whitelistIp(Request $request)
+    {
+        $request->validate([
+            'ip_address' => 'required|ip'
+        ]);
+
+        $ip = $request->ip_address;
+        
+        $reputation = \App\Models\IpReputation::firstOrCreate(
+            ['ip_address' => $ip],
+            ['is_public' => true]
+        );
+        
+        $reputation->is_whitelisted = true;
+        $reputation->save();
+
+        return redirect()->back()->with('success', "IP {$ip} berhasil dimasukkan ke daftar Whitelist. IP ini tidak akan dicurigai lagi.");
+    }
+
+    
     public function socApprovals(Request $request)
     {
         $query = \App\Models\SecurityIncidentResponse::where('status', 'pending')

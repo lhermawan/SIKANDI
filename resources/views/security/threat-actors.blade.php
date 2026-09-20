@@ -62,7 +62,7 @@
                     @forelse($topAttackers as $attacker)
                         <tr class="hover:bg-slate-800/40 transition {{ $attacker->block_status ? 'opacity-70' : '' }}">
                             <td class="px-4 py-4 text-center">
-                                @if(!$attacker->block_status)
+                                @if(!$attacker->block_status && (!isset($attacker->reputation) || !$attacker->reputation->is_whitelisted))
                                     <input type="checkbox" name="ips[]" value="{{ $attacker->source_ip }}" class="check-item rounded border-slate-700 bg-slate-800 text-rose-500 focus:ring-rose-500/50">
                                 @endif
                             </td>
@@ -84,7 +84,11 @@
                             <td class="px-4 py-4 font-semibold">{{ number_format($attacker->total_events) }} events</td>
                             <td class="px-4 py-4">
                                 @if($attacker->reputation)
-                                    @if($attacker->reputation->abuse_confidence_score >= 80)
+                                    @if($attacker->reputation->is_whitelisted)
+                                        <span class="px-2.5 py-1 rounded-md text-[11px] font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                                            Whitelisted (Dikecualikan)
+                                        </span>
+                                    @elseif($attacker->reputation->abuse_confidence_score >= 80)
                                         <span class="px-2.5 py-1 rounded-md text-[11px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30">
                                             Skor: {{ $attacker->reputation->abuse_confidence_score }}% (Malicious)
                                         </span>
@@ -104,19 +108,31 @@
                                 @endif
                             </td>
                             <td class="px-4 py-4 text-right">
-                                @if($attacker->block_status === 'executed')
+                                @if($attacker->reputation && $attacker->reputation->is_whitelisted)
+                                    <span class="px-3 py-1.5 bg-blue-500/10 text-blue-400 border border-blue-500/30 rounded-lg shadow-sm text-[11px] font-bold uppercase inline-flex items-center gap-1.5">
+                                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> Whitelisted
+                                    </span>
+                                @elseif($attacker->block_status === 'executed')
                                     <span class="px-3 py-1.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 rounded-lg shadow-sm text-[11px] font-bold uppercase inline-flex items-center gap-1.5">
                                         <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Terblokir
                                     </span>
                                 @elseif($attacker->block_status === 'pending')
                                     <span class="px-3 py-1.5 bg-amber-500/10 text-amber-400 border border-amber-500/30 rounded-lg shadow-sm text-[11px] font-bold uppercase inline-flex items-center gap-1.5 animate-pulse">
-                                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> Menunggu Verifikasi
+                                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> Menunggu
                                     </span>
                                 @else
-                                    <!-- Keep original standalone button just in case, but styled differently -->
-                                    <button type="submit" form="single-block-{{ md5($attacker->source_ip) }}" class="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium rounded shadow shadow-slate-900/50 transition text-[11px] uppercase inline-flex items-center gap-1.5">
-                                        Blokir Ini Saja
-                                    </button>
+                                    <div class="flex gap-2 justify-end">
+                                        <form action="{{ route('threat-actors.whitelist') }}" method="POST" class="inline">
+                                            @csrf
+                                            <input type="hidden" name="ip_address" value="{{ $attacker->source_ip }}">
+                                            <button type="submit" class="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-blue-400 font-medium rounded shadow shadow-slate-900/50 transition text-[11px] uppercase inline-flex items-center gap-1.5" onclick="return confirm('Kecualikan IP {{ $attacker->source_ip }} dari daftar peringatan (Whitelist)?');">
+                                                Whitelist
+                                            </button>
+                                        </form>
+                                        <button type="submit" form="single-block-{{ md5($attacker->source_ip) }}" class="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-rose-400 font-medium rounded shadow shadow-slate-900/50 transition text-[11px] uppercase inline-flex items-center gap-1.5">
+                                            Blokir
+                                        </button>
+                                    </div>
                                 @endif
                             </td>
                         </tr>
