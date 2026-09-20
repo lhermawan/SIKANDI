@@ -53,6 +53,7 @@
                         </th>
                         <th class="px-4 py-4 border-b border-slate-800">Source IP</th>
                         <th class="px-4 py-4 border-b border-slate-800">Target Agent</th>
+                        <th class="px-4 py-4 border-b border-slate-800">Aktivitas Deteksi</th>
                         <th class="px-4 py-4 border-b border-slate-800">Total Serangan</th>
                         <th class="px-4 py-4 border-b border-slate-800">Threat Intel (AbuseIPDB)</th>
                         <th class="px-4 py-4 border-b border-slate-800 text-right">Tindakan SOC</th>
@@ -81,6 +82,13 @@
                                     @endforeach
                                 </div>
                             </td>
+                            <td class="px-4 py-4">
+                                <div class="flex flex-wrap gap-1 max-w-[200px]">
+                                    @foreach(array_filter(explode(', ', $attacker->event_types)) as $event_type)
+                                        <span class="px-2 py-0.5 bg-purple-500/10 text-purple-400 text-[10px] border border-purple-500/20 rounded font-medium">{{ str_replace('_', ' ', $event_type) }}</span>
+                                    @endforeach
+                                </div>
+                            </td>
                             <td class="px-4 py-4 font-semibold">{{ number_format($attacker->total_events) }} events</td>
                             <td class="px-4 py-4">
                                 @if($attacker->reputation)
@@ -97,14 +105,12 @@
                                             Skor: {{ $attacker->reputation->abuse_confidence_score }}% (Suspicious)
                                         </span>
                                     @else
-                                        <span class="px-2.5 py-1 rounded-md text-[11px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                                            Aman (Skor: 0%)
+                                        <span class="px-2.5 py-1 rounded-md text-[11px] font-medium bg-slate-800 text-slate-400 border border-slate-700">
+                                            Skor: {{ $attacker->reputation->abuse_confidence_score }}% (Safe)
                                         </span>
                                     @endif
                                 @else
-                                    <span class="px-2.5 py-1 rounded-md text-[11px] bg-slate-800 text-slate-400 border border-slate-700 animate-pulse">
-                                        Scanning...
-                                    </span>
+                                    <span class="px-2 py-1 rounded bg-slate-800 text-slate-400 text-[11px] animate-pulse">Checking...</span>
                                 @endif
                             </td>
                             <td class="px-4 py-4 text-right">
@@ -114,7 +120,11 @@
                                     </span>
                                 @elseif($attacker->block_status === 'executed')
                                     <span class="px-3 py-1.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 rounded-lg shadow-sm text-[11px] font-bold uppercase inline-flex items-center gap-1.5">
-                                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Terblokir
+                                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Terblokir SIKANDI
+                                    </span>
+                                @elseif($attacker->block_status === 'fail2ban')
+                                    <span class="px-3 py-1.5 bg-fuchsia-500/10 text-fuchsia-400 border border-fuchsia-500/30 rounded-lg shadow-sm text-[11px] font-bold uppercase inline-flex items-center gap-1.5" title="Otomatis terblokir oleh log Fail2ban">
+                                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg> Terblokir Fail2ban
                                     </span>
                                 @elseif($attacker->block_status === 'pending')
                                     <span class="px-3 py-1.5 bg-amber-500/10 text-amber-400 border border-amber-500/30 rounded-lg shadow-sm text-[11px] font-bold uppercase inline-flex items-center gap-1.5 animate-pulse">

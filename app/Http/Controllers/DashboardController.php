@@ -195,7 +195,7 @@ class DashboardController extends Controller
 
     public function threatActors(Request $request)
     {
-        $query = \App\Models\SecurityEvent::selectRaw('source_ip, COUNT(*) as total_events, GROUP_CONCAT(DISTINCT hostname SEPARATOR ", ") as targeted_agents, MAX(created_at) as last_seen')
+        $query = \App\Models\SecurityEvent::selectRaw('source_ip, COUNT(*) as total_events, GROUP_CONCAT(DISTINCT hostname SEPARATOR ", ") as targeted_agents, GROUP_CONCAT(DISTINCT event_type SEPARATOR ", ") as event_types, MAX(created_at) as last_seen')
             ->whereNotNull('source_ip')
             ->where('source_ip', '!=', '')
             ->where('source_ip', '!=', '127.0.0.1');
@@ -223,6 +223,17 @@ class DashboardController extends Controller
                 ->first();
                 
             $attacker->block_status = $blockResponse ? $blockResponse->status : null;
+
+            // Check if blocked by fail2ban
+            if (!$attacker->block_status) {
+                $f2b = \App\Models\SecurityEvent::where('source_ip', $attacker->source_ip)
+                    ->whereIn('event_type', ['FAIL2BAN_BAN', 'FAIL2BAN_UNBAN'])
+                    ->orderBy('created_at', 'desc')
+                    ->first();
+                if ($f2b && $f2b->event_type === 'FAIL2BAN_BAN') {
+                    $attacker->block_status = 'fail2ban';
+                }
+            }
         }
 
         // We can sort the collection after pagination so that unblocked ones appear on top of blocked ones
