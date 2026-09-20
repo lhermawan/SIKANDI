@@ -198,7 +198,8 @@ class DashboardController extends Controller
         $query = \App\Models\SecurityEvent::selectRaw('source_ip, COUNT(*) as total_events, GROUP_CONCAT(DISTINCT hostname SEPARATOR ", ") as targeted_agents, GROUP_CONCAT(DISTINCT event_type SEPARATOR ", ") as event_types, MAX(created_at) as last_seen')
             ->whereNotNull('source_ip')
             ->where('source_ip', '!=', '')
-            ->where('source_ip', '!=', '127.0.0.1');
+            ->where('source_ip', '!=', '127.0.0.1')
+            ->where('source_ip', '!=', 'N/A');
             
         if ($request->filled('search')) {
             $query->where('source_ip', 'like', "%{$request->search}%");
