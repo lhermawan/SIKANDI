@@ -122,7 +122,7 @@
                                     </span>
                                 @else
                                     <div class="flex gap-2 justify-end">
-                                        <form action="{{ route('threat-actors.whitelist') }}" method="POST" class="inline">
+                                        <form action="{{ route('security.threat-actors.whitelist') }}" method="POST" class="inline">
                                             @csrf
                                             <input type="hidden" name="ip_address" value="{{ $attacker->source_ip }}">
                                             <button type="submit" class="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-blue-400 font-medium rounded shadow shadow-slate-900/50 transition text-[11px] uppercase inline-flex items-center gap-1.5" onclick="return confirm('Kecualikan IP {{ $attacker->source_ip }} dari daftar peringatan (Whitelist)?');">
