@@ -30,3 +30,9 @@
 - [x] Buat Laravel Queued Job (proses *chunking*) agar pengecekan 300+ website bisa berjalan di background tanpa membuat server PHP timeout/lemot.
 - [x] Daftarkan Command tersebut ke dalam Laravel Scheduler agar pengecekan otomatis berjalan berkala (misal setiap jam/hari).
 - [x] (Opsional) Tambahkan tombol "Check All" di halaman UI untuk men-trigger Queued Job secara manual.
+
+### Antivirus-style Scanning UI (Real-time Progress)
+- [ ] Ubah Queued Job menjadi **Laravel Job Batches** agar progress-nya bisa dilacak (Berapa % selesai, total diproses, dsb).
+- [ ] Buat API Endpoint (contoh: `/monitoring/websites/batch-status/{id}`) untuk memberikan data progress scanning ke *frontend*.
+- [ ] Buat Modal/UI Progress Bar ala "Antivirus" di `websites.blade.php`.
+- [ ] Gunakan JavaScript (AJAX Polling / setInterval) untuk menembak API dan menganimasikan Progress Bar secara *real-time* saat tombol "Check All" diklik.
