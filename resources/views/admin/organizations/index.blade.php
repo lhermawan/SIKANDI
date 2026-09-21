@@ -122,10 +122,19 @@
                                     {{ $org->users_count }}
                                 </span>
                             </td>
-                            <td class="py-3 px-4 text-center">
+                            <td class="py-3 px-4 text-center flex items-center justify-center gap-2">
                                 <button type="button" onclick='openEditModal(@json($org))' class="text-blue-400 hover:text-blue-300 transition text-[11px] font-semibold bg-blue-500/10 px-3 py-1.5 rounded-lg border border-blue-500/20">
                                     Edit
                                 </button>
+                                @hasanyrole('Super Admin|Admin Persandian')
+                                    <form action="{{ route('admin.organizations.destroy', $org) }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menghapus data OPD ini? Data tidak dapat dihapus jika masih memiliki user terkait.')">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="text-rose-400 hover:text-rose-300 transition text-[11px] font-semibold bg-rose-500/10 px-3 py-1.5 rounded-lg border border-rose-500/20">
+                                            Hapus
+                                        </button>
+                                    </form>
+                                @endhasanyrole
                             </td>
                         </tr>
                     @empty
