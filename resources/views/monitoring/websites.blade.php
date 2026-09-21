@@ -437,7 +437,7 @@
                 
                 document.getElementById('scannerStatusText').innerText = `Analyzing payloads... (${data.finished || 0}/${data.totalJobs || 0} processed)`;
 
-                if(progress >= 100 || data.finished >= data.totalJobs) {
+                if(progress >= 100 || data.is_finished) {
                     clearInterval(pollInterval);
                     clearInterval(lineAnimInterval);
                     document.getElementById('scanLine').style.opacity = '0';

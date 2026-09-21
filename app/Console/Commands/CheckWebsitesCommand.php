@@ -37,9 +37,10 @@ class CheckWebsitesCommand extends Command
             return;
         }
 
-        // Pecah menjadi beberapa bagian (chunk) agar tidak memberatkan memori
-        $chunks = array_chunk($websiteIds, 50);
+        // Pecah menjadi beberapa bagian (chunk)
+        $chunks = array_chunk($websiteIds, 5); // Use smaller chunks so jobs finish faster and progress is granular
 
+        $jobs = [];
         foreach ($chunks as $chunk) {
             CheckWebsitesBatch::dispatch($chunk);
         }

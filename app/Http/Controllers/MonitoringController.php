@@ -144,7 +144,7 @@ class MonitoringController extends Controller
     public function checkAll(Request $request)
     {
         $websiteIds = Website::pluck('id')->toArray();
-        $chunks = array_chunk($websiteIds, 50);
+        $chunks = array_chunk($websiteIds, 5); // Reduce chunk size to 5 for more granular progress updates
 
         $jobs = [];
         foreach ($chunks as $chunk) {
@@ -169,9 +169,9 @@ class MonitoringController extends Controller
         return response()->json([
             'id' => $batch->id,
             'progress' => $batch->progress(),
-            'finished' => $batch->finished(),
-            'failedJobs' => $batch->failedJobs,
-            'totalJobs' => $batch->totalJobs
+            'finished' => $batch->processedJobs(),
+            'totalJobs' => $batch->totalJobs,
+            'is_finished' => $batch->finished()
         ]);
     }
 }
