@@ -61,13 +61,15 @@ class RoleController extends Controller
         return redirect()->route('admin.roles.edit', $role);
     }
 
+    protected $protectedRoles = ['Super Admin', 'Admin Persandian', 'IT Technician', 'OPD User', 'Management'];
+
     /**
      * Show the form for editing the specified resource.
      */
     public function edit(Role $role)
     {
         if ($role->name === 'Super Admin') {
-            return redirect()->route('admin.roles.index')->with('error', 'Super Admin tidak dapat diubah.');
+            return redirect()->route('admin.roles.index')->with('error', 'Role Super Admin tidak dapat diubah.');
         }
 
         $permissions = Permission::orderBy('name')->get();
@@ -81,16 +83,24 @@ class RoleController extends Controller
     public function update(Request $request, Role $role)
     {
         if ($role->name === 'Super Admin') {
-            return redirect()->route('admin.roles.index')->with('error', 'Super Admin tidak dapat diubah.');
+            return redirect()->route('admin.roles.index')->with('error', 'Role Super Admin tidak dapat diubah.');
         }
 
-        $request->validate([
-            'name' => 'required|string|max:255|unique:roles,name,'.$role->id,
+        $rules = [
             'permissions' => 'nullable|array',
             'permissions.*' => 'exists:permissions,id',
-        ]);
+        ];
 
-        $role->update(['name' => $request->name]);
+        // Jika bukan role bawaan sistem, izinkan ganti nama
+        if (!in_array($role->name, $this->protectedRoles)) {
+            $rules['name'] = 'required|string|max:255|unique:roles,name,'.$role->id;
+        }
+
+        $request->validate($rules);
+
+        if (!in_array($role->name, $this->protectedRoles) && $request->has('name')) {
+            $role->update(['name' => $request->name]);
+        }
 
         // Sync permissions
         $permissions = $request->permissions ?? [];
@@ -105,8 +115,8 @@ class RoleController extends Controller
      */
     public function destroy(Role $role)
     {
-        if ($role->name === 'Super Admin') {
-            return redirect()->route('admin.roles.index')->with('error', 'Super Admin tidak dapat dihapus.');
+        if (in_array($role->name, $this->protectedRoles)) {
+            return redirect()->route('admin.roles.index')->with('error', 'Role bawaan sistem tidak dapat dihapus.');
         }
 
         if ($role->users()->count() > 0) {
