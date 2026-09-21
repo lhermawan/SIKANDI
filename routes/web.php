@@ -128,6 +128,9 @@ Route::middleware('auth')->group(function () {
             Route::get('/risks', [RiskController::class, 'index'])->name('risks.index');
             Route::get('/risks/create', [RiskController::class, 'create'])->name('risks.create');
             Route::post('/risks', [RiskController::class, 'store'])->name('risks.store');
+            Route::get('/risks/{risk}/edit', [RiskController::class, 'edit'])->name('risks.edit');
+            Route::put('/risks/{risk}', [RiskController::class, 'update'])->name('risks.update');
+            Route::delete('/risks/{risk}', [RiskController::class, 'destroy'])->name('risks.destroy');
             Route::get('/risks/{risk}', [RiskController::class, 'show'])->name('risks.show');
             Route::post('/risks/{risk}/treatment', [RiskController::class, 'storeTreatment'])->name('risks.treatment');
         });

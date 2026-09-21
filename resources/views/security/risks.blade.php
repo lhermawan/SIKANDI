@@ -118,6 +118,7 @@
                         <th class="py-3 px-4">Skor & Level</th>
                         <th class="py-3 px-4">Penanggung Jawab</th>
                         <th class="py-3 px-4">Status</th>
+                        <th class="py-3 px-4 text-right">Aksi</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-800/60 text-slate-300">
@@ -172,10 +173,24 @@
                                     {{ $r->status }}
                                 </span>
                             </td>
+                            <td class="py-3.5 px-4 text-right">
+                                <div class="flex items-center justify-end gap-2">
+                                    <a href="{{ route('security.risks.edit', $r) }}" class="p-1.5 text-slate-400 hover:text-blue-400 hover:bg-slate-800 rounded-lg transition" title="Edit">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                                    </a>
+                                    <form action="{{ route('security.risks.destroy', $r) }}" method="POST" onsubmit="return confirm('Yakin ingin menghapus risiko ini?');">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-lg transition" title="Hapus">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="py-8 text-center text-slate-500">Belum ada risiko terdaftar dalam register.</td>
+                            <td colspan="8" class="py-8 text-center text-slate-500">Belum ada risiko terdaftar dalam register.</td>
                         </tr>
                     @endforelse
                 </tbody>
