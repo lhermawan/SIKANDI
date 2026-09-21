@@ -63,4 +63,9 @@ class Agent extends Model
     {
         return $this->hasMany(AgentCommand::class);
     }
+
+    public function securityEvents(): HasMany
+    {
+        return $this->hasMany(SecurityEvent::class, 'agent_id');
+    }
 }

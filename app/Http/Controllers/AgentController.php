@@ -22,8 +22,8 @@ class AgentController extends Controller
 
     public function show(Agent $agent)
     {
-        $agent->load(['configurationItem', 'services', 'events' => function ($q) {
-            $q->latest()->limit(50);
+        $agent->load(['configurationItem', 'services', 'securityEvents' => function ($q) {
+            $q->latest('timestamp')->limit(50);
         }]);
         $latestMetric = $agent->metrics()->latest()->first();
         $cis = ConfigurationItem::whereHas('ciType', function ($q) {

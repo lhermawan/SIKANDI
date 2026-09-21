@@ -214,31 +214,34 @@
                 <h2 class="text-sm font-semibold text-white">Event Log</h2>
             </div>
             <div class="p-5">
-                @if($agent->events->count() > 0)
-                    <div class="space-y-4">
-                        @foreach($agent->events as $ev)
+                @if($agent->securityEvents->count() > 0)
+                    <div class="space-y-4 max-h-96 overflow-y-auto pr-2 custom-scrollbar">
+                        @foreach($agent->securityEvents as $ev)
                             <div class="flex items-start gap-3 text-sm">
-                                <div class="mt-0.5">
+                                <div class="mt-0.5 shrink-0">
                                     @if($ev->severity === 'critical' || $ev->severity === 'high')
-                                        <span class="w-2 h-2 rounded-full bg-rose-500 inline-block"></span>
-                                    @elseif($ev->severity === 'warning')
-                                        <span class="w-2 h-2 rounded-full bg-amber-500 inline-block"></span>
+                                        <span class="w-2 h-2 rounded-full bg-rose-500 inline-block shadow-[0_0_5px_#f43f5e]"></span>
+                                    @elseif($ev->severity === 'medium' || $ev->severity === 'warning')
+                                        <span class="w-2 h-2 rounded-full bg-amber-500 inline-block shadow-[0_0_5px_#f59e0b]"></span>
                                     @else
-                                        <span class="w-2 h-2 rounded-full bg-blue-500 inline-block"></span>
+                                        <span class="w-2 h-2 rounded-full bg-blue-500 inline-block shadow-[0_0_5px_#3b82f6]"></span>
                                     @endif
                                 </div>
-                                <div>
-                                    <p class="text-white">{{ $ev->message ?? $ev->type }}</p>
-                                    <p class="text-xs text-slate-500">{{ $ev->created_at->format('d M Y H:i:s') }}</p>
+                                <div class="flex-1">
+                                    <div class="flex items-center justify-between gap-4 mb-1">
+                                        <span class="font-semibold text-slate-200 text-xs uppercase tracking-wider">{{ $ev->event_type }} ({{ $ev->action }})</span>
+                                        <span class="text-[10px] text-slate-500 whitespace-nowrap">{{ $ev->timestamp->format('d M Y H:i:s') }}</span>
+                                    </div>
+                                    <p class="text-xs text-slate-400 leading-relaxed break-words whitespace-normal">{!! str_replace('**', '', $ev->narrative) !!}</p>
                                     @if($ev->incident_id)
-                                        <a href="#" class="text-[10px] text-blue-400 hover:underline">Linked to Incident</a>
+                                        <a href="{{ route('security.incidents.show', $ev->incident_id) }}" class="inline-block mt-1 text-[10px] text-blue-400 hover:underline">Lihat Insiden Terkait &rarr;</a>
                                     @endif
                                 </div>
                             </div>
                         @endforeach
                     </div>
                 @else
-                    <p class="text-sm text-slate-500 text-center py-4">Belum ada log event.</p>
+                    <p class="text-sm text-slate-500 text-center py-4">Belum ada log event keamanan dari Agent ini.</p>
                 @endif
             </div>
         </div>
