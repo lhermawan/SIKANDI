@@ -172,4 +172,17 @@ class IkasandiController extends Controller
 
         return view('ikasandi.print', compact('assessment', 'categories', 'existingAnswers'));
     }
+
+    public function destroy(Assessment $assessment): RedirectResponse
+    {
+        $user = Auth::user();
+        if (! $user->hasAnyRole(['Super Admin', 'Admin Persandian'])) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $assessment->answers()->delete();
+        $assessment->delete();
+
+        return back()->with('success', 'Data Assessment berhasil dihapus.');
+    }
 }

@@ -157,6 +157,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/assessment/{assessment}', [IkasandiController::class, 'submitAssessment'])->name('assessment.submit');
         Route::post('/assessment/{assessment}/verify', [IkasandiController::class, 'verifyAssessment'])->name('assessment.verify');
         Route::get('/assessment/{assessment}/print', [IkasandiController::class, 'printAssessment'])->name('assessment.print');
+        Route::delete('/assessment/{assessment}', [IkasandiController::class, 'destroy'])->name('assessment.destroy');
     });
 
     // Knowledge Base & Documentation
