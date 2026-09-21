@@ -31,12 +31,12 @@ class SecurityEvent extends Model
     {
         $type = strtoupper($this->event_type);
         $action = strtoupper($this->action);
-        
+
         // Bersihkan N/A
         $ip = ($this->source_ip === 'N/A' || empty($this->source_ip)) ? null : $this->source_ip;
         $host = $this->hostname ?? 'Unknown Server';
         $user = ($this->username === 'N/A' || empty($this->username)) ? null : $this->username;
-        
+
         $ipDisplay = $ip ?? 'Unknown IP';
         $userDisplay = $user ?? 'Sistem/Unknown User';
 
@@ -57,8 +57,8 @@ class SecurityEvent extends Model
         }
 
         // Fallback for other events
-        $sourceDesc = $ip ? " dari IP **{$ip}**" : " (Aktivitas Internal/Lokal)";
-        $userDesc = $user ? " oleh user **{$user}**" : "";
+        $sourceDesc = $ip ? " dari IP **{$ip}**" : ' (Aktivitas Internal/Lokal)';
+        $userDesc = $user ? " oleh user **{$user}**" : '';
 
         return "Sistem mendeteksi aktivitas **{$type}** ({$action}) pada server **{$host}**{$sourceDesc}{$userDesc}. Alasan yang tercatat: ".($this->reason ?? 'Aktivitas anomali terdeteksi oleh SIKANDI Agent.');
     }

@@ -105,6 +105,7 @@ Route::middleware('auth')->group(function () {
             Route::post('/incidents/{incident}/evidence', [SecurityIncidentController::class, 'storeEvidence'])->name('incidents.evidence.store');
             Route::post('/incidents/{incident}/resolve', [SecurityIncidentController::class, 'resolve'])->name('incidents.resolve');
             Route::post('/incidents/{incident}/assign', [SecurityIncidentController::class, 'assign'])->name('incidents.assign');
+            Route::delete('/incidents/bulk-destroy', [SecurityIncidentController::class, 'bulkDestroy'])->name('incidents.bulk-destroy');
             Route::delete('/incidents/{incident}', [SecurityIncidentController::class, 'destroy'])->name('incidents.destroy');
 
             // Threat Actors & HitL Approvals

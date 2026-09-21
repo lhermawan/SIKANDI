@@ -31,6 +31,18 @@ class SecurityIncidentController extends Controller
         if ($request->filled('severity')) {
             $query->where('severity', $request->severity);
         }
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('incident_code', 'like', "%{$search}%")
+                    ->orWhere('title', 'like', "%{$search}%")
+                    ->orWhere('detection_rule', 'like', "%{$search}%")
+                    ->orWhere('source_ip', 'like', "%{$search}%")
+                    ->orWhereHas('organization', function ($q2) use ($search) {
+                        $q2->where('name', 'like', "%{$search}%");
+                    });
+            });
+        }
 
         $incidents = $query->latest()->paginate(15)->withQueryString();
 
@@ -288,6 +300,18 @@ class SecurityIncidentController extends Controller
     {
         $incident->delete();
 
-        return redirect()->route('security.incidents.index')->with('success', 'Insiden Keamanan Siber berhasil dihapus.');
+        return redirect()->route('security.incidents.index')->with('success', 'Insiden berhasil dihapus.');
+    }
+
+    public function bulkDestroy(Request $request)
+    {
+        $request->validate([
+            'ids' => 'required|string',
+        ]);
+
+        $ids = explode(',', $request->ids);
+        SecurityIncident::whereIn('id', $ids)->delete();
+
+        return redirect()->back()->with('success', count($ids).' Insiden berhasil dihapus.');
     }
 }
