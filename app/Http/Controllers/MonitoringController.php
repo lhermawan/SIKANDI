@@ -135,28 +135,6 @@ class MonitoringController extends Controller
 
     public function check(Website $website): RedirectResponse
     {
-        $startTime = microtime(true);
-        $status = 'down';
-        $httpCode = null;
-        $errorMessage = null;
-        $sslValid = false;
-        $sslDaysLeft = null;
-        $sslStatus = 'unknown';
-        $sslIssuer = null;
-        $sslExpiresAt = null;
-
-        try {
-            $response = Http::timeout(6)->withoutVerifying()->get($website->url);
-            $responseTimeMs = (int) round((microtime(true) - $startTime) * 1000);
-            $httpCode = $response->status();
-
-            if ($response->successful() || $response->redirect()) {
-                $status = 'up';
-            } else {
-                $status = 'down';
-                $errorMessage = "HTTP Status {$httpCode}";
-            }
-        } catch (\Throwable $e) {
         $service = app(\App\Services\WebsiteMonitoringService::class);
         $service->check($website);
 
