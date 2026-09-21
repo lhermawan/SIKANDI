@@ -103,6 +103,7 @@ Route::middleware('auth')->group(function () {
             // Threat Actors & HitL Approvals
             Route::get('/threat-actors', [DashboardController::class, 'threatActors'])->name('threat-actors.index');
             Route::post('/threat-actors/bulk-block', [DashboardController::class, 'draftQuickBlockBulk'])->name('threat-actors.bulk-block');
+            Route::post('/threat-actors/quick-block', [DashboardController::class, 'draftQuickBlock'])->name('admin.soc.quick-block');
             Route::post('/threat-actors/whitelist', [DashboardController::class, 'whitelistIp'])->name('threat-actors.whitelist');
             Route::post('/threat-actors/unban', [DashboardController::class, 'unbanIp'])->name('threat-actors.unban');
             Route::post('/threat-actors/remove-whitelist', [DashboardController::class, 'removeWhitelist'])->name('threat-actors.remove-whitelist');
