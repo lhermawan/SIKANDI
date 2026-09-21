@@ -216,3 +216,4 @@
         };
     });
 </script>
+@endsection
