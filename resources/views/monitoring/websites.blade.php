@@ -53,6 +53,13 @@
             @endif
         </form>
         <div class="flex gap-2 w-full md:w-auto justify-end">
+            <form action="{{ route('monitoring.websites.check-all') }}" method="POST" class="inline">
+                @csrf
+                <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold transition flex items-center gap-2 shadow-lg shadow-indigo-600/30 cursor-pointer" onclick="return confirm('Pengecekan massal akan dijalankan di background. Lanjutkan?')">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                    Check All
+                </button>
+            </form>
             <a href="{{ route('monitoring.websites.export', request()->all()) }}" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold transition flex items-center gap-2 shadow-lg shadow-emerald-600/30 cursor-pointer">
                 Export
             </a>

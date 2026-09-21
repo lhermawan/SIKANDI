@@ -16,3 +16,6 @@ Schedule::command(PruneAgentMetrics::class)->daily();
 // Risk Management
 Schedule::command('risk:evaluate')->hourly();
 Schedule::command('risk:reminders')->dailyAt('08:00');
+
+// Monitoring Website (Automated Health Checks)
+Schedule::command('sikandi:check-websites')->hourly();
