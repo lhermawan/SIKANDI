@@ -138,7 +138,7 @@
                     
                     <!-- Accordion Detail Row -->
                     <tr id="detail-{{ $event->id }}" class="hidden bg-slate-900/50">
-                        <td colspan="7" class="px-6 py-6 border-t border-slate-800/50">
+                        <td colspan="7" class="px-6 py-6 border-t border-slate-800/50 whitespace-normal">
                             <div class="max-w-5xl mx-auto space-y-4">
                                 
                                 {{-- 1. Narrative Section --}}
@@ -146,11 +146,11 @@
                                     <div class="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center shrink-0 mt-0.5">
                                         <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                                     </div>
-                                    <div>
+                                    <div class="min-w-0 flex-1">
                                         <h4 class="text-sm font-bold text-blue-400 mb-1">Narasi Kejadian</h4>
-                                        <p class="text-sm text-slate-300 leading-relaxed">
+                                        <div class="text-sm text-slate-300 leading-relaxed prose prose-invert prose-p:my-1 prose-a:text-blue-400 max-w-none break-words">
                                             {!! Str::markdown($event->narrative) !!}
-                                        </p>
+                                        </div>
                                     </div>
                                 </div>
 

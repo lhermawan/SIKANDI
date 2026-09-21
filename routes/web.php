@@ -1,19 +1,26 @@
 <?php
 
+use App\Http\Controllers\Admin\LocationController;
+use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\AgentController;
 use App\Http\Controllers\AssetController;
+use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CmdbController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DiskManagerController;
 use App\Http\Controllers\GlobalSearchController;
+use App\Http\Controllers\IkasandiController;
 use App\Http\Controllers\IncidentController;
+use App\Http\Controllers\KnowledgeController;
 use App\Http\Controllers\MonitoringController;
+use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\RiskController;
 use App\Http\Controllers\SecurityIncidentController;
 use App\Http\Controllers\SecurityLogController;
 use App\Http\Controllers\SecurityRuleController;
 use App\Http\Controllers\TicketController;
+use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -138,39 +145,39 @@ Route::middleware('auth')->group(function () {
 
     // IKASANDI (Indikator Keamanan Informasi OPD)
     Route::prefix('ikasandi')->name('ikasandi.')->group(function () {
-        Route::get('/dashboard', [App\Http\Controllers\IkasandiController::class, 'dashboard'])->name('dashboard');
-        Route::get('/assessment', [App\Http\Controllers\IkasandiController::class, 'assessment'])->name('assessment');
-        Route::post('/assessment/{assessment}', [App\Http\Controllers\IkasandiController::class, 'submitAssessment'])->name('assessment.submit');
+        Route::get('/dashboard', [IkasandiController::class, 'dashboard'])->name('dashboard');
+        Route::get('/assessment', [IkasandiController::class, 'assessment'])->name('assessment');
+        Route::post('/assessment/{assessment}', [IkasandiController::class, 'submitAssessment'])->name('assessment.submit');
     });
 
     // Knowledge Base & Documentation
-    Route::resource('knowledge', App\Http\Controllers\KnowledgeController::class);
-    Route::post('/documents', [App\Http\Controllers\KnowledgeController::class, 'storeDocument'])->name('documents.store');
-    Route::get('/documents/{document}/download', [App\Http\Controllers\KnowledgeController::class, 'downloadDocument'])->name('documents.download');
-    Route::delete('/documents/{document}', [App\Http\Controllers\KnowledgeController::class, 'destroyDocument'])->name('documents.destroy');
+    Route::resource('knowledge', KnowledgeController::class);
+    Route::post('/documents', [KnowledgeController::class, 'storeDocument'])->name('documents.store');
+    Route::get('/documents/{document}/download', [KnowledgeController::class, 'downloadDocument'])->name('documents.download');
+    Route::delete('/documents/{document}', [KnowledgeController::class, 'destroyDocument'])->name('documents.destroy');
 
     // Administration (Roles & OPD)
     Route::prefix('admin')->name('admin.')->middleware(['role:Super Admin|Admin Persandian'])->group(function () {
-        Route::get('/dashboard', [App\Http\Controllers\DashboardController::class, 'index'])->name('dashboard');
-        Route::post('/soc/quick-block', [App\Http\Controllers\DashboardController::class, 'draftQuickBlock'])->name('soc.quick-block');
-        Route::get('/users', [App\Http\Controllers\UserController::class, 'index'])->name('users.index');
-        Route::post('/users', [App\Http\Controllers\UserController::class, 'store'])->name('users.store');
-        Route::get('/users/{user}/edit', [App\Http\Controllers\UserController::class, 'edit'])->name('users.edit');
-        Route::put('/users/{user}', [App\Http\Controllers\UserController::class, 'update'])->name('users.update');
-        Route::delete('/users/{user}', [App\Http\Controllers\UserController::class, 'destroy'])->name('users.destroy');
-        Route::post('/users/{user}/toggle-active', [App\Http\Controllers\UserController::class, 'toggleActive'])->name('users.toggle-active');
-        Route::post('/users/{user}/unlock', [App\Http\Controllers\UserController::class, 'unlock'])->name('users.unlock');
-        Route::get('/organizations', [App\Http\Controllers\OrganizationController::class, 'index'])->name('organizations.index');
-        Route::post('/organizations', [App\Http\Controllers\OrganizationController::class, 'store'])->name('organizations.store');
-        Route::put('/organizations/{organization}', [App\Http\Controllers\OrganizationController::class, 'update'])->name('organizations.update');
-        Route::get('/audit-logs', [App\Http\Controllers\AuditLogController::class, 'index'])->name('audit-logs');
-        
+        Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+        Route::post('/soc/quick-block', [DashboardController::class, 'draftQuickBlock'])->name('soc.quick-block');
+        Route::get('/users', [UserController::class, 'index'])->name('users.index');
+        Route::post('/users', [UserController::class, 'store'])->name('users.store');
+        Route::get('/users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
+        Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
+        Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
+        Route::post('/users/{user}/toggle-active', [UserController::class, 'toggleActive'])->name('users.toggle-active');
+        Route::post('/users/{user}/unlock', [UserController::class, 'unlock'])->name('users.unlock');
+        Route::get('/organizations', [OrganizationController::class, 'index'])->name('organizations.index');
+        Route::post('/organizations', [OrganizationController::class, 'store'])->name('organizations.store');
+        Route::put('/organizations/{organization}', [OrganizationController::class, 'update'])->name('organizations.update');
+        Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('audit-logs');
+
         // Roles Management
-        Route::resource('roles', \App\Http\Controllers\Admin\RoleController::class)->except(['show']);
+        Route::resource('roles', RoleController::class)->except(['show']);
 
         // Master Data: Lokasi & Ruang
-        Route::resource('locations', \App\Http\Controllers\Admin\LocationController::class)->except(['create', 'show', 'edit']);
-        Route::patch('locations/{location}/toggle', [\App\Http\Controllers\Admin\LocationController::class, 'toggle'])->name('locations.toggle');
+        Route::resource('locations', LocationController::class)->except(['create', 'show', 'edit']);
+        Route::patch('locations/{location}/toggle', [LocationController::class, 'toggle'])->name('locations.toggle');
     });
 
 });
