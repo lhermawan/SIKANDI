@@ -108,7 +108,7 @@
                                 $typeMap = [
                                     'FAIL2BAN_BAN' => ['icon' => '🛡️', 'label' => 'IP Diblokir Otomatis'],
                                     'FAIL2BAN_UNBAN' => ['icon' => '✅', 'label' => 'Blokir IP Dilepas'],
-                                    'LOGIN' => ['icon' => $event->action === 'SUCCESS' ? '🔑' : '⚠️', 'label' => $event->action === 'SUCCESS' ? 'Login Berhasil' : 'Login Gagal']
+                                    'LOGIN' => ['icon' => strtoupper($event->action) === 'SUCCESS' ? '🔑' : '⚠️', 'label' => strtoupper($event->action) === 'SUCCESS' ? 'Login Berhasil' : 'Login Gagal']
                                 ];
                                 $mapped = $typeMap[strtoupper($event->event_type)] ?? ['icon' => '📌', 'label' => strtoupper($event->event_type)];
                             @endphp
