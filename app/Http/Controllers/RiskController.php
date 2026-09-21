@@ -63,6 +63,10 @@ class RiskController extends Controller
             'vulnerability' => 'nullable|string',
             'likelihood' => 'required|integer|min:1|max:5',
             'impact' => 'required|integer|min:1|max:5',
+            'compliance_framework' => 'nullable|string|max:100',
+            'compliance_clause' => 'nullable|string|max:100',
+            'financial_impact_estimate' => 'nullable|numeric|min:0',
+            'downtime_hours_estimate' => 'nullable|integer|min:0',
             'owner_id' => 'nullable|exists:users,id',
             'due_date' => 'nullable|date',
         ]);

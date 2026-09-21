@@ -25,6 +25,11 @@ class Risk extends Model
         'vulnerability',
         'likelihood',
         'impact',
+        'compliance_framework',
+        'compliance_clause',
+        'financial_impact_estimate',
+        'downtime_hours_estimate',
+        'is_dynamic_score',
         'risk_score',
         'risk_level',
         'owner_id',
@@ -39,6 +44,9 @@ class Risk extends Model
             'impact' => 'integer',
             'risk_score' => 'integer',
             'due_date' => 'date',
+            'financial_impact_estimate' => 'decimal:2',
+            'downtime_hours_estimate' => 'integer',
+            'is_dynamic_score' => 'boolean',
         ];
     }
 

@@ -96,6 +96,34 @@
                 <label class="block font-medium text-slate-300 mb-1">Batas Waktu Penanganan (Due Date)</label>
                 <input type="date" name="due_date" class="w-full px-3 py-2 bg-slate-950/60 border border-slate-700/80 rounded-xl text-white">
             </div>
+            <div>
+                <label class="block font-medium text-slate-300 mb-1">Standar Kepatuhan (Framework)</label>
+                <select name="compliance_framework" class="w-full px-3 py-2 bg-slate-950/60 border border-slate-700/80 rounded-xl text-white">
+                    <option value="">-- Opsional: Pilih Standar --</option>
+                    <option value="SPBE">SPBE</option>
+                    <option value="Indeks KAMI">Indeks KAMI (BSSN)</option>
+                    <option value="ISO 27001">ISO 27001</option>
+                    <option value="Peraturan Pemda">Peraturan Pemda</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block font-medium text-slate-300 mb-1">Klausul Kepatuhan</label>
+                <input type="text" name="compliance_clause" placeholder="Contoh: Domain Keamanan SPBE / Klausul A.11"
+                    class="w-full px-3 py-2 bg-slate-950/60 border border-slate-700/80 rounded-xl text-white">
+            </div>
+
+            <div>
+                <label class="block font-medium text-slate-300 mb-1">Estimasi Kerugian (Rp)</label>
+                <input type="number" step="1000" name="financial_impact_estimate" placeholder="Cth: 5000000"
+                    class="w-full px-3 py-2 bg-slate-950/60 border border-slate-700/80 rounded-xl text-white">
+            </div>
+
+            <div>
+                <label class="block font-medium text-slate-300 mb-1">Estimasi Downtime (Jam)</label>
+                <input type="number" name="downtime_hours_estimate" placeholder="Cth: 24"
+                    class="w-full px-3 py-2 bg-slate-950/60 border border-slate-700/80 rounded-xl text-white">
+            </div>
         </div>
 
         <div>

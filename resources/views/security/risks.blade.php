@@ -128,7 +128,12 @@
                             </td>
                             <td class="py-3.5 px-4">
                                 <p class="font-semibold text-white text-sm">{{ $r->title }}</p>
-                                <span class="text-[10px] text-slate-400">Ancaman: {{ $r->threat ?? '-' }}</span>
+                                <div class="flex flex-col gap-0.5 mt-1">
+                                    <span class="text-[10px] text-slate-400">Ancaman: {{ $r->threat ?? '-' }}</span>
+                                    @if($r->compliance_framework)
+                                        <span class="text-[10px] text-purple-400 font-semibold">{{ $r->compliance_framework }} {{ $r->compliance_clause ? ' - '.$r->compliance_clause : '' }}</span>
+                                    @endif
+                                </div>
                             </td>
                             <td class="py-3.5 px-4">
                                 @if($r->configurationItem)
@@ -143,13 +148,21 @@
                                 {{ $r->likelihood }} &times; {{ $r->impact }}
                             </td>
                             <td class="py-3.5 px-4">
-                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase
-                                    @if($r->risk_level === 'critical') bg-rose-500/20 text-rose-300
-                                    @elseif($r->risk_level === 'high') bg-orange-500/20 text-orange-300
-                                    @elseif($r->risk_level === 'medium') bg-amber-500/20 text-amber-300
-                                    @else bg-emerald-500/20 text-emerald-300 @endif">
-                                    {{ $r->risk_score }} &bull; {{ $r->risk_level }}
-                                </span>
+                                <div class="flex flex-col gap-1 items-start">
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase
+                                        @if($r->risk_level === 'critical') bg-rose-500/20 text-rose-300
+                                        @elseif($r->risk_level === 'high') bg-orange-500/20 text-orange-300
+                                        @elseif($r->risk_level === 'medium') bg-amber-500/20 text-amber-300
+                                        @else bg-emerald-500/20 text-emerald-300 @endif">
+                                        {{ $r->risk_score }} &bull; {{ $r->risk_level }}
+                                    </span>
+                                    @if($r->is_dynamic_score)
+                                        <span class="text-[9px] font-bold text-yellow-400 flex items-center gap-1" title="Skor risiko disesuaikan otomatis oleh SIKANDI berdasarkan Insiden/Kerentanan Aktif">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                                            DYNAMIC
+                                        </span>
+                                    @endif
+                                </div>
                             </td>
                             <td class="py-3.5 px-4">
                                 <span class="text-slate-300">{{ $r->owner?->name ?? 'Belum Ditugaskan' }}</span>

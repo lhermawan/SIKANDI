@@ -12,3 +12,7 @@ Artisan::command('inspire', function () {
 
 Schedule::command(CheckAgentStatus::class)->everyMinute();
 Schedule::command(PruneAgentMetrics::class)->daily();
+
+// Risk Management
+Schedule::command('risk:evaluate')->hourly();
+Schedule::command('risk:reminders')->dailyAt('08:00');
