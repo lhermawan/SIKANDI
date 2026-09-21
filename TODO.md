@@ -24,3 +24,9 @@
      -   [ x ]   B u a t   f i t u r   I m p o r t   E x c e l   u n t u k   m e n d a f t a r k a n   b a n y a k   w e b s i t e   s e k a l i g u s   k e   s i s t e m   m o n i t o r i n g   ( m a p p i n g   k e   O P D   d a n   C I ) .  
      -   [ x ]   B u a t   f i t u r   E x p o r t   E x c e l   u n t u k   m e n g u n d u h   l a p o r a n   s t a t u s   w e b s i t e   d a n   m a s a   a k t i f   S S L .  
      -   [ x ]   P a s t i k a n   f i l e   t e m p l a t e   E x c e l   b e r i s i   c o n t o h   d a t a   a s l i   ( d u m m y )   y a n g   d i a m b i l   d a r i   d a t a b a s e   a g a r   p e n g g u n a   p a h a m   f o r m a t   i s i a n n y a   ( m i s a l :   I D   O P D ,   I D   C I ,   f o r m a t   U R L ) .
+
+### Bulk & Automated Website Checking
+- [ ] Buat Laravel Console Command (`php artisan sikandi:check-websites`) untuk melakukan pengecekan seluruh website.
+- [ ] Buat Laravel Queued Job (proses *chunking*) agar pengecekan 300+ website bisa berjalan di background tanpa membuat server PHP timeout/lemot.
+- [ ] Daftarkan Command tersebut ke dalam Laravel Scheduler agar pengecekan otomatis berjalan berkala (misal setiap jam/hari).
+- [ ] (Opsional) Tambahkan tombol "Check All" di halaman UI untuk men-trigger Queued Job secara manual.
