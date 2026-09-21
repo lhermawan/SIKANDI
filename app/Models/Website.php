@@ -21,6 +21,7 @@ class Website extends Model
         'current_status',
         'http_status_code',
         'response_time_ms',
+        'last_error',
         'ip_address',
         'ssl_status',
         'ssl_issuer',

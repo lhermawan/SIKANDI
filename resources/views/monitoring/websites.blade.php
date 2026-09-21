@@ -108,20 +108,27 @@
                     @forelse($websites as $site)
                         <tr class="hover:bg-slate-800/30 transition">
                             <td class="py-3.5 px-4">
-                                <p class="font-semibold text-white text-sm">{{ $site->name }}</p>
+                                <span class="text-white font-medium">{{ $site->name }}</span>
                                 <a href="{{ $site->url }}" target="_blank" class="text-blue-400 hover:underline font-mono text-[11px] flex items-center gap-1 mt-0.5">
                                     <span>{{ $site->url }}</span>
                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
                                 </a>
+                                @if($site->ip_address)
+                                    <span class="text-[9px] font-mono text-slate-500 block mt-1">IP: {{ $site->ip_address }}</span>
+                                @endif
                             </td>
                             <td class="py-3.5 px-4">
-                                <span class="text-slate-200 font-medium">{{ $site->organization->name }}</span>
+                                <span class="text-slate-200 font-medium">{{ $site->organization->name ?? '-' }}</span>
                             </td>
                             <td class="py-3.5 px-4">
-                                <a href="{{ route('cmdb.show', $site->configurationItem) }}" class="font-mono text-blue-400 hover:underline font-semibold block">
-                                    {{ $site->configurationItem->ci_code }}
-                                </a>
-                                <span class="text-[10px] text-slate-400">{{ $site->configurationItem->name }}</span>
+                                @if($site->configurationItem)
+                                    <a href="{{ route('cmdb.show', $site->configurationItem) }}" class="font-mono text-blue-400 hover:underline font-semibold block">
+                                        {{ $site->configurationItem->ci_code }}
+                                    </a>
+                                    <span class="text-[10px] text-slate-400">{{ $site->configurationItem->name }}</span>
+                                @else
+                                    -
+                                @endif
                             </td>
                             <td class="py-3.5 px-4 text-center">
                                 <span class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase inline-flex items-center gap-1.5
@@ -133,6 +140,9 @@
                                 </span>
                                 @if($site->http_status_code)
                                     <span class="block text-[10px] text-slate-500 mt-0.5">HTTP {{ $site->http_status_code }}</span>
+                                @endif
+                                @if($site->current_status === 'down' && $site->last_error)
+                                    <span class="block text-[9px] text-rose-400/80 mt-1 truncate max-w-[150px] mx-auto" title="{{ $site->last_error }}">{{ $site->last_error }}</span>
                                 @endif
                             </td>
                             <td class="py-3.5 px-4 font-mono">

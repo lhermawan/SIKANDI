@@ -28,6 +28,16 @@ class WebsiteMonitoringService
         }
 
         $responseTimeMs = (int) ((microtime(true) - $startTime) * 1000);
+        
+        // Resolve IP Address
+        $ipAddress = null;
+        $host = parse_url($website->url, PHP_URL_HOST);
+        if ($host) {
+            $resolvedIp = gethostbyname($host);
+            if ($resolvedIp !== $host) {
+                $ipAddress = $resolvedIp;
+            }
+        }
 
         // SSL Check (Jika HTTPS)
         $sslValid = false;
@@ -81,6 +91,8 @@ class WebsiteMonitoringService
             'current_status' => $status,
             'http_status_code' => $httpCode,
             'response_time_ms' => $responseTimeMs,
+            'last_error' => $errorMessage,
+            'ip_address' => $ipAddress ?? $website->ip_address,
             'ssl_status' => $sslStatus,
             'ssl_issuer' => $sslIssuer ?? $website->ssl_issuer,
             'ssl_expires_at' => $sslExpiresAt ?? $website->ssl_expires_at,
