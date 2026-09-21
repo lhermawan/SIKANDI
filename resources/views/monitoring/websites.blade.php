@@ -53,13 +53,10 @@
             @endif
         </form>
         <div class="flex gap-2 w-full md:w-auto justify-end">
-            <form action="{{ route('monitoring.websites.check-all') }}" method="POST" class="inline">
-                @csrf
-                <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold transition flex items-center gap-2 shadow-lg shadow-indigo-600/30 cursor-pointer" onclick="return confirm('Pengecekan massal akan dijalankan di background. Lanjutkan?')">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-                    Check All
-                </button>
-            </form>
+            <button type="button" onclick="startBulkCheck()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold transition flex items-center gap-2 shadow-lg shadow-indigo-600/30 cursor-pointer">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                Check All
+            </button>
             <a href="{{ route('monitoring.websites.export', request()->all()) }}" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold transition flex items-center gap-2 shadow-lg shadow-emerald-600/30 cursor-pointer">
                 Export
             </a>
@@ -315,6 +312,43 @@
                 </div>
             </form>
         </div>
+    <!-- Scanner Modal -->
+    <div id="scannerModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-lg w-full p-8 shadow-2xl space-y-6 text-center relative overflow-hidden">
+            <!-- Decorative scan line effect -->
+            <div id="scanLine" class="absolute left-0 right-0 h-1 bg-indigo-500/50 shadow-[0_0_15px_rgba(99,102,241,0.8)] opacity-0"></div>
+            
+            <div class="mb-2">
+                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-800 border-2 border-indigo-500/30 mb-4 animate-pulse">
+                    <svg class="w-8 h-8 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                </div>
+                <h3 class="text-xl font-bold text-white tracking-tight">System Security Scan</h3>
+                <p id="scannerStatusText" class="text-sm text-slate-400 mt-2 font-mono">Initializing scanner...</p>
+            </div>
+            
+            <div class="relative pt-1">
+                <div class="flex mb-2 items-center justify-between">
+                    <div>
+                        <span class="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-indigo-400 bg-indigo-400/10">
+                            Progress
+                        </span>
+                    </div>
+                    <div class="text-right">
+                        <span id="scannerProgressText" class="text-xs font-semibold inline-block text-indigo-400">
+                            0%
+                        </span>
+                    </div>
+                </div>
+                <div class="overflow-hidden h-3 mb-4 text-xs flex rounded-full bg-slate-800 border border-slate-700">
+                    <div id="scannerProgressBar" style="width:0%" class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-indigo-500 transition-all duration-500 ease-out"></div>
+                </div>
+            </div>
+            
+            <div class="text-xs text-slate-500 font-mono flex justify-between px-2">
+                <span>Target: <span class="text-slate-300">Global Monitor</span></span>
+                <span>Threads: <span class="text-slate-300">Active</span></span>
+            </div>
+        </div>
     </div>
 </div>
 @endsection
@@ -333,6 +367,91 @@
             document.getElementById('editWebsiteForm').action = `/monitoring/websites/${id}`;
             document.getElementById('editWebsiteModal').classList.remove('hidden');
         }
+    }
+
+    let pollInterval;
+
+    function startBulkCheck() {
+        if(!confirm('Mulai pemindaian (scanning) seluruh website?')) return;
+        
+        // Tampilkan modal
+        const modal = document.getElementById('scannerModal');
+        const statusText = document.getElementById('scannerStatusText');
+        const progText = document.getElementById('scannerProgressText');
+        const progBar = document.getElementById('scannerProgressBar');
+        const scanLine = document.getElementById('scanLine');
+        
+        modal.classList.remove('hidden');
+        statusText.innerText = "Dispatching scan workers...";
+        progText.innerText = "0%";
+        progBar.style.width = "0%";
+        
+        // Animasi garis scanner
+        scanLine.style.opacity = '1';
+        let pos = -10;
+        let direction = 1;
+        const lineAnim = setInterval(() => {
+            pos += direction * 2;
+            if (pos > 100) direction = -1;
+            if (pos < -10) direction = 1;
+            scanLine.style.top = pos + '%';
+        }, 30);
+
+        // Fetch API untuk men-trigger Check All (mengembalikan batch_id)
+        fetch("{{ route('monitoring.websites.check-all') }}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if(data.batch_id) {
+                statusText.innerText = "Scanning targets...";
+                pollBatchStatus(data.batch_id, lineAnim);
+            } else {
+                alert("Gagal memulai scanner.");
+                clearInterval(lineAnim);
+                modal.classList.add('hidden');
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert("Terjadi kesalahan jaringan.");
+            clearInterval(lineAnim);
+            modal.classList.add('hidden');
+        });
+    }
+
+    function pollBatchStatus(batchId, lineAnimInterval) {
+        pollInterval = setInterval(() => {
+            fetch(`/monitoring/websites/batch-status/${batchId}`)
+            .then(res => res.json())
+            .then(data => {
+                if(data.error) return;
+                
+                const progress = data.progress || 0;
+                document.getElementById('scannerProgressText').innerText = progress + "%";
+                document.getElementById('scannerProgressBar').style.width = progress + "%";
+                
+                document.getElementById('scannerStatusText').innerText = `Analyzing payloads... (${data.finished || 0}/${data.totalJobs || 0} processed)`;
+
+                if(progress >= 100 || data.finished >= data.totalJobs) {
+                    clearInterval(pollInterval);
+                    clearInterval(lineAnimInterval);
+                    document.getElementById('scanLine').style.opacity = '0';
+                    document.getElementById('scannerStatusText').innerText = "Scan Complete! Resolving statuses...";
+                    document.getElementById('scannerProgressBar').classList.replace('bg-indigo-500', 'bg-emerald-500');
+                    document.getElementById('scannerProgressText').classList.replace('text-indigo-400', 'text-emerald-400');
+                    
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
+                }
+            })
+            .catch(err => console.error(err));
+        }, 1500);
     }
 </script>
 @endpush

@@ -32,7 +32,7 @@
 - [x] (Opsional) Tambahkan tombol "Check All" di halaman UI untuk men-trigger Queued Job secara manual.
 
 ### Antivirus-style Scanning UI (Real-time Progress)
-- [ ] Ubah Queued Job menjadi **Laravel Job Batches** agar progress-nya bisa dilacak (Berapa % selesai, total diproses, dsb).
-- [ ] Buat API Endpoint (contoh: `/monitoring/websites/batch-status/{id}`) untuk memberikan data progress scanning ke *frontend*.
-- [ ] Buat Modal/UI Progress Bar ala "Antivirus" di `websites.blade.php`.
-- [ ] Gunakan JavaScript (AJAX Polling / setInterval) untuk menembak API dan menganimasikan Progress Bar secara *real-time* saat tombol "Check All" diklik.
+- [x] Ubah Queued Job menjadi **Laravel Job Batches** agar progress-nya bisa dilacak (Berapa % selesai, total diproses, dsb).
+- [x] Buat API Endpoint (contoh: `/monitoring/websites/batch-status/{id}`) untuk memberikan data progress scanning ke *frontend*.
+- [x] Buat Modal/UI Progress Bar ala "Antivirus" di `websites.blade.php`.
+- [x] Gunakan JavaScript (AJAX Polling / setInterval) untuk menembak API dan menganimasikan Progress Bar secara *real-time* saat tombol "Check All" diklik.

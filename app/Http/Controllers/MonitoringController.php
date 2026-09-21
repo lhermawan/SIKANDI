@@ -141,9 +141,37 @@ class MonitoringController extends Controller
         return back()->with('success', "Pemeriksaan untuk {$website->name} selesai. Status: ".strtoupper($website->fresh()->current_status));
     }
     
-    public function checkAll(Request $request): RedirectResponse
+    public function checkAll(Request $request)
     {
-        \Illuminate\Support\Facades\Artisan::call('sikandi:check-websites');
-        return back()->with('success', "Proses pengecekan seluruh website sedang berjalan di background.");
+        $websiteIds = Website::pluck('id')->toArray();
+        $chunks = array_chunk($websiteIds, 50);
+
+        $jobs = [];
+        foreach ($chunks as $chunk) {
+            $jobs[] = new \App\Jobs\CheckWebsitesBatch($chunk);
+        }
+
+        $batch = \Illuminate\Support\Facades\Bus::batch($jobs)
+            ->name('Bulk Website Monitoring')
+            ->dispatch();
+
+        return response()->json(['batch_id' => $batch->id]);
+    }
+
+    public function batchStatus($id)
+    {
+        $batch = \Illuminate\Support\Facades\Bus::findBatch($id);
+
+        if (!$batch) {
+            return response()->json(['error' => 'Batch not found'], 404);
+        }
+
+        return response()->json([
+            'id' => $batch->id,
+            'progress' => $batch->progress(),
+            'finished' => $batch->finished(),
+            'failedJobs' => $batch->failedJobs,
+            'totalJobs' => $batch->totalJobs
+        ]);
     }
 }

@@ -87,6 +87,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/monitoring/websites/import', [MonitoringController::class, 'import'])->name('monitoring.websites.import');
     Route::get('/monitoring/websites/template', [MonitoringController::class, 'downloadTemplate'])->name('monitoring.websites.template');
     Route::post('/monitoring/websites/check-all', [MonitoringController::class, 'checkAll'])->name('monitoring.websites.check-all');
+    Route::get('/monitoring/websites/batch-status/{id}', [MonitoringController::class, 'batchStatus'])->name('monitoring.websites.batch-status');
     Route::post('/monitoring/websites/{website}/check', [MonitoringController::class, 'check'])->name('monitoring.websites.check');
 
     // Incident Management
