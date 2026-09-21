@@ -23,7 +23,7 @@ class IkasandiController extends Controller
             $q->whereIn('status', ['submitted', 'verified', 'published']);
         })->count();
 
-        $avgScore = round(Assessment::avg('compliance_score') ?? 0, 1);
+        $avgScore = round(Assessment::avg('final_score') ?? 0, 1);
         $avgRisk = round(Assessment::avg('risk_score') ?? 0, 1);
 
         $riskStats = [
@@ -40,6 +40,18 @@ class IkasandiController extends Controller
             ->latest('updated_at')
             ->paginate(15);
 
+        $topOpd = Assessment::with('organization')
+            ->whereIn('status', ['verified', 'published'])
+            ->orderByDesc('final_score')
+            ->limit(5)
+            ->get();
+
+        $bottomOpd = Assessment::with('organization')
+            ->whereIn('status', ['verified', 'published'])
+            ->orderBy('final_score')
+            ->limit(5)
+            ->get();
+
         return view('ikasandi.dashboard', compact(
             'totalOpd',
             'assessedCount',
@@ -48,7 +60,9 @@ class IkasandiController extends Controller
             'riskStats',
             'openIncidents',
             'websiteIssues',
-            'assessments'
+            'assessments',
+            'topOpd',
+            'bottomOpd'
         ));
     }
 
@@ -122,5 +136,40 @@ class IkasandiController extends Controller
         }
 
         return back()->with('success', 'Jawaban berhasil disimpan sebagai draf sementara.');
+    }
+
+    public function verifyAssessment(Request $request, Assessment $assessment): RedirectResponse
+    {
+        $request->validate([
+            'status' => 'required|in:verified,published,revising',
+            'feedback' => 'nullable|string',
+        ]);
+
+        $assessment->update([
+            'status' => $request->status,
+            'verified_at' => now(),
+            // You can add a feedback column to assessments table if needed,
+            // or just use it to send an email. For now we will update status.
+        ]);
+
+        return back()->with('success', 'Status Assessment berhasil diperbarui.');
+    }
+
+    public function printAssessment(Assessment $assessment): View
+    {
+        // Must be verified or published to be printed
+        if (! in_array($assessment->status, ['verified', 'published'])) {
+            abort(403, 'Assessment belum diverifikasi.');
+        }
+
+        $assessment->load('organization', 'answers.question.category');
+
+        $categories = AssessmentCategory::with(['questions' => function ($q) {
+            $q->where('is_active', true)->orderBy('order_num');
+        }])->orderBy('order_num')->get();
+
+        $existingAnswers = $assessment->answers()->pluck('answer', 'question_id')->toArray();
+
+        return view('ikasandi.print', compact('assessment', 'categories', 'existingAnswers'));
     }
 }

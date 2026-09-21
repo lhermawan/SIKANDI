@@ -116,6 +116,61 @@
         </div>
     </div>
 
+    <!-- Leaderboard / Gamification -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Top 5 -->
+        <div class="bg-slate-900/80 border border-slate-800/80 rounded-2xl overflow-hidden">
+            <div class="p-4 border-b border-slate-800 flex items-center justify-between bg-emerald-950/20">
+                <div class="flex items-center gap-2">
+                    <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/></svg>
+                    <h2 class="font-bold text-emerald-300 text-sm">Top 5 OPD Teraman</h2>
+                </div>
+                <span class="text-[10px] text-emerald-500/70 font-semibold uppercase">Paling Patuh</span>
+            </div>
+            <div class="p-2 space-y-1">
+                @forelse($topOpd as $index => $opd)
+                    <div class="flex items-center justify-between p-3 rounded-xl hover:bg-slate-800/50 transition">
+                        <div class="flex items-center gap-3">
+                            <span class="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 font-bold flex items-center justify-center text-xs">{{ $index + 1 }}</span>
+                            <div>
+                                <p class="text-sm font-semibold text-white">{{ $opd->organization->name }}</p>
+                            </div>
+                        </div>
+                        <span class="text-lg font-black text-emerald-400">{{ $opd->final_score }}%</span>
+                    </div>
+                @empty
+                    <div class="p-4 text-center text-xs text-slate-500">Belum ada data OPD terverifikasi.</div>
+                @endforelse
+            </div>
+        </div>
+
+        <!-- Bottom 5 -->
+        <div class="bg-slate-900/80 border border-slate-800/80 rounded-2xl overflow-hidden">
+            <div class="p-4 border-b border-slate-800 flex items-center justify-between bg-rose-950/20">
+                <div class="flex items-center gap-2">
+                    <svg class="w-5 h-5 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                    <h2 class="font-bold text-rose-300 text-sm">5 OPD Perlu Perhatian</h2>
+                </div>
+                <span class="text-[10px] text-rose-500/70 font-semibold uppercase">Risiko Tinggi</span>
+            </div>
+            <div class="p-2 space-y-1">
+                @forelse($bottomOpd as $index => $opd)
+                    <div class="flex items-center justify-between p-3 rounded-xl hover:bg-slate-800/50 transition">
+                        <div class="flex items-center gap-3">
+                            <span class="w-6 h-6 rounded-full bg-rose-500/20 text-rose-400 font-bold flex items-center justify-center text-xs">{{ $index + 1 }}</span>
+                            <div>
+                                <p class="text-sm font-semibold text-white">{{ $opd->organization->name }}</p>
+                            </div>
+                        </div>
+                        <span class="text-lg font-black text-rose-400">{{ $opd->final_score }}%</span>
+                    </div>
+                @empty
+                    <div class="p-4 text-center text-xs text-slate-500">Belum ada data OPD terverifikasi.</div>
+                @endforelse
+            </div>
+        </div>
+    </div>
+
     <!-- OPD Assessment Results Table -->
     <div class="bg-slate-900/80 border border-slate-800/80 rounded-2xl overflow-hidden">
         <div class="p-5 border-b border-slate-800 flex items-center justify-between">
@@ -130,10 +185,10 @@
                 <thead class="bg-slate-950/60 border-b border-slate-800 text-slate-400 font-semibold uppercase tracking-wider text-[11px]">
                     <tr>
                         <th class="py-3 px-4">Nama OPD / Lembaga</th>
-                        <th class="py-3 px-4">Tahun Evaluasi</th>
-                        <th class="py-3 px-4 text-center">Skor Kepatuhan</th>
-                        <th class="py-3 px-4 text-center">Skor Risiko</th>
-                        <th class="py-3 px-4">Status Pengajuan</th>
+                        <th class="py-3 px-4 text-center">Skor Kuesioner</th>
+                        <th class="py-3 px-4 text-center">Penalti (Fakta)</th>
+                        <th class="py-3 px-4 text-center">Final Kepatuhan</th>
+                        <th class="py-3 px-4">Status</th>
                         <th class="py-3 px-4 text-right">Aksi</th>
                     </tr>
                 </thead>
@@ -142,26 +197,38 @@
                         <tr class="hover:bg-slate-800/30 transition">
                             <td class="py-3.5 px-4 font-semibold text-white">
                                 {{ $asm->organization->name }}
-                                <span class="block text-[10px] text-slate-500 font-normal">{{ $asm->organization->code }} &bull; {{ ucfirst($asm->organization->category) }}</span>
-                            </td>
-                            <td class="py-3.5 px-4 text-slate-300">
-                                {{ $asm->year }} ({{ $asm->period }})
+                                <span class="block text-[10px] text-slate-500 font-normal">Tahun: {{ $asm->year }} &bull; {{ ucfirst($asm->organization->category) }}</span>
                             </td>
                             <td class="py-3.5 px-4 text-center">
-                                <span class="text-sm font-bold text-emerald-400">{{ $asm->compliance_score }}%</span>
+                                <span class="text-sm font-bold text-slate-300">{{ $asm->compliance_score }}%</span>
                             </td>
                             <td class="py-3.5 px-4 text-center">
-                                <span class="text-sm font-bold text-rose-400">{{ $asm->risk_score }}%</span>
+                                @if($asm->penalty_score > 0)
+                                    <span class="text-sm font-bold text-rose-400" title="Penalti karena ada insiden/website bermasalah">-{{ $asm->penalty_score }}%</span>
+                                @else
+                                    <span class="text-sm text-slate-500">0%</span>
+                                @endif
+                            </td>
+                            <td class="py-3.5 px-4 text-center">
+                                <span class="text-sm font-bold {{ $asm->final_score >= 80 ? 'text-emerald-400' : ($asm->final_score >= 60 ? 'text-amber-400' : 'text-rose-400') }}">{{ $asm->final_score }}%</span>
                             </td>
                             <td class="py-3.5 px-4">
-                                <span class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase bg-slate-800 text-slate-300">
+                                <span class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase 
+                                    {{ $asm->status === 'verified' || $asm->status === 'published' ? 'bg-emerald-500/20 text-emerald-300' : 
+                                      ($asm->status === 'submitted' ? 'bg-blue-500/20 text-blue-300' : 'bg-slate-800 text-slate-300') }}">
                                     {{ $asm->status }}
                                 </span>
                             </td>
-                            <td class="py-3.5 px-4 text-right">
+                            <td class="py-3.5 px-4 text-right flex items-center justify-end gap-2">
                                 <a href="{{ route('ikasandi.assessment', ['org_id' => $asm->organization_id]) }}" class="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-medium">
-                                    Tinjau Kuesioner
+                                    Tinjau Data
                                 </a>
+                                @if(in_array($asm->status, ['verified', 'published']))
+                                    <a href="{{ route('ikasandi.assessment.print', $asm) }}" target="_blank" class="px-3 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-medium flex items-center gap-1">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                                        Cetak
+                                    </a>
+                                @endif
                             </td>
                         </tr>
                     @empty

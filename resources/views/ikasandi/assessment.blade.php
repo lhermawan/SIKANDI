@@ -47,7 +47,7 @@
     </div>
 
     <!-- Questionnaire Form -->
-    <form action="{{ route('ikasandi.assessment.submit', $assessment) }}" method="POST" class="space-y-6">
+    <form id="assessmentForm" action="{{ route('ikasandi.assessment.submit', $assessment) }}" method="POST" class="space-y-6">
         @csrf
 
         @foreach($categories as $cat)
@@ -107,15 +107,45 @@
                 </div>
             </div>
         @endforeach
+    </form>
 
-        <div class="flex items-center justify-end gap-3 sticky bottom-4 bg-slate-900/90 backdrop-blur-md p-4 rounded-2xl border border-slate-800 shadow-2xl">
-            <button type="submit" name="save_draft" value="1" class="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold transition cursor-pointer">
+        <!-- Admin Verification Block -->
+        @hasanyrole('Super Admin|Admin Persandian')
+            @if(in_array($assessment->status, ['submitted', 'revising', 'verified', 'published']))
+            <div class="mt-8 p-6 bg-indigo-950/30 border border-indigo-800/50 rounded-2xl">
+                <h3 class="text-sm font-bold text-indigo-300 mb-3">Tindakan Admin Persandian (Verifikasi)</h3>
+                <form action="{{ route('ikasandi.assessment.verify', $assessment) }}" method="POST" class="space-y-4 text-xs">
+                    @csrf
+                    <div>
+                        <label class="block font-medium text-slate-300 mb-1">Status Verifikasi</label>
+                        <select name="status" class="w-full px-3 py-2 bg-slate-900 border border-slate-700/80 rounded-xl text-white">
+                            <option value="verified" {{ $assessment->status === 'verified' ? 'selected' : '' }}>Setujui (Verified)</option>
+                            <option value="revising" {{ $assessment->status === 'revising' ? 'selected' : '' }}>Tolak / Minta Revisi (Revising)</option>
+                            <option value="published" {{ $assessment->status === 'published' ? 'selected' : '' }}>Terbitkan Skor (Published)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-medium text-slate-300 mb-1">Catatan / Feedback untuk OPD</label>
+                        <textarea name="feedback" rows="2" class="w-full px-3 py-2 bg-slate-900 border border-slate-700/80 rounded-xl text-white" placeholder="Contoh: Bukti dukung firewall kurang lengkap..."></textarea>
+                    </div>
+                    <button type="submit" class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition cursor-pointer">
+                        Simpan Verifikasi
+                    </button>
+                </form>
+            </div>
+            @endif
+        @endhasanyrole
+
+        @if(!in_array($assessment->status, ['verified', 'published']))
+        <div class="flex items-center justify-end gap-3 sticky bottom-4 mt-8 bg-slate-900/90 backdrop-blur-md p-4 rounded-2xl border border-slate-800 shadow-2xl">
+            <button form="assessmentForm" type="submit" name="save_draft" value="1" class="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold transition cursor-pointer">
                 Simpan Draf Sementara
             </button>
-            <button type="submit" name="submit_final" value="1" onclick="return confirm('Apakah Anda yakin ingin menyelesaikan dan mengajukan penilaian IKASANDI ini?')" class="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold transition shadow-lg shadow-emerald-600/30 cursor-pointer">
+            <button form="assessmentForm" type="submit" name="submit_final" value="1" onclick="return confirm('Apakah Anda yakin ingin menyelesaikan dan mengajukan penilaian IKASANDI ini?')" class="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold transition shadow-lg shadow-emerald-600/30 cursor-pointer">
                 Hitung Skor & Ajukan Final
             </button>
         </div>
-    </form>
+        @endif
+    <!-- removed form end tag since it will be moved -->
 </div>
 @endsection
