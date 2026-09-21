@@ -119,13 +119,31 @@
                                         <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> Whitelisted
                                     </span>
                                 @elseif($attacker->block_status === 'executed')
-                                    <span class="px-3 py-1.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 rounded-lg shadow-sm text-[11px] font-bold uppercase inline-flex items-center gap-1.5">
-                                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Terblokir SIKANDI
-                                    </span>
+                                    <div class="flex gap-2 justify-end items-center">
+                                        <span class="px-2 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 rounded-lg shadow-sm text-[11px] font-bold uppercase inline-flex items-center gap-1.5">
+                                            <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Terblokir
+                                        </span>
+                                        <form action="{{ route('security.threat-actors.unban') }}" method="POST" class="inline">
+                                            @csrf
+                                            <input type="hidden" name="ip_address" value="{{ $attacker->source_ip }}">
+                                            <button type="submit" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-blue-400 font-medium rounded shadow shadow-slate-900/50 transition text-[11px] uppercase inline-flex items-center gap-1" onclick="return confirm('Lepas blokir IP {{ $attacker->source_ip }} dari seluruh server SIKANDI?');">
+                                                Unban
+                                            </button>
+                                        </form>
+                                    </div>
                                 @elseif($attacker->block_status === 'fail2ban')
-                                    <span class="px-3 py-1.5 bg-fuchsia-500/10 text-fuchsia-400 border border-fuchsia-500/30 rounded-lg shadow-sm text-[11px] font-bold uppercase inline-flex items-center gap-1.5" title="Otomatis terblokir oleh log Fail2ban">
-                                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg> Terblokir Fail2ban
-                                    </span>
+                                    <div class="flex gap-2 justify-end items-center">
+                                        <span class="px-2 py-1 bg-fuchsia-500/10 text-fuchsia-400 border border-fuchsia-500/30 rounded-lg shadow-sm text-[11px] font-bold uppercase inline-flex items-center gap-1.5" title="Otomatis terblokir oleh log Fail2ban">
+                                            <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg> Fail2ban
+                                        </span>
+                                        <form action="{{ route('security.threat-actors.unban') }}" method="POST" class="inline">
+                                            @csrf
+                                            <input type="hidden" name="ip_address" value="{{ $attacker->source_ip }}">
+                                            <button type="submit" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-blue-400 font-medium rounded shadow shadow-slate-900/50 transition text-[11px] uppercase inline-flex items-center gap-1" onclick="return confirm('Lepas blokir Fail2ban untuk IP {{ $attacker->source_ip }}?');">
+                                                Unban
+                                            </button>
+                                        </form>
+                                    </div>
                                 @elseif($attacker->block_status === 'pending')
                                     <span class="px-3 py-1.5 bg-amber-500/10 text-amber-400 border border-amber-500/30 rounded-lg shadow-sm text-[11px] font-bold uppercase inline-flex items-center gap-1.5 animate-pulse">
                                         <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> Menunggu

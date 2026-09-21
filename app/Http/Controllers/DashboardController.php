@@ -278,6 +278,38 @@ class DashboardController extends Controller
         return redirect()->back()->with('success', "IP {$ip} berhasil dimasukkan ke daftar Whitelist. IP ini tidak akan dicurigai lagi.");
     }
 
+    public function unbanIp(Request $request)
+    {
+        $request->validate([
+            'ip_address' => 'required|ip',
+        ]);
+
+        $ip = $request->ip_address;
+
+        // Broadcast perintah unban_ip ke seluruh agen
+        $agents = \App\Models\Agent::all();
+        foreach ($agents as $agent) {
+            $agent->commands()->create([
+                'action' => 'unban_ip',
+                'paths' => [$ip], // Kita gunakan field paths untuk menyimpan target IP
+                'status' => 'pending'
+            ]);
+        }
+
+        // Jika IP ini pernah diblokir via SIKANDI SOC (status: executed/pending),
+        // tandai responsenya sebagai resolved atau update deskripsi
+        SecurityIncidentResponse::where('action', 'block_ip')
+            ->where('description', 'like', "%{$ip}%")
+            ->whereIn('status', ['pending', 'executed'])
+            ->update([
+                'status' => 'resolved',
+                'performed_by' => Auth::id(),
+                'description' => "Blokir dicabut secara manual (UNBAN). Target IP: {$ip}"
+            ]);
+
+        return redirect()->back()->with('success', "Perintah UNBAN darurat untuk IP {$ip} telah disiarkan ke seluruh agen. Blokir IPTables/Fail2ban akan segera dicabut.");
+    }
+
     public function socApprovals(Request $request)
     {
         $query = SecurityIncidentResponse::where('status', 'pending')
