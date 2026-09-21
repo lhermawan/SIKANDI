@@ -135,7 +135,7 @@
             <div class="p-5 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
                     <h2 class="text-sm font-semibold text-white">Monitored Services</h2>
-                    <p class="text-xs text-slate-500 mt-0.5">Total: {{ $agent->services->count() }} service</p>
+                    <p class="text-xs text-slate-500 mt-0.5">Total: <span id="services-count">{{ $agent->services->count() }}</span> service</p>
                 </div>
                 @if($agent->services->count() > 0)
                 <div class="relative">
@@ -150,39 +150,29 @@
                 </div>
                 @endif
             </div>
-            <div class="p-0">
+            <div class="p-4">
                 @php
-                    $sortedServices = $agent->services->sortBy(function($svc) {
-                        return strtolower($svc->status) === 'running' ? 0 : 1;
-                    })->values();
+                    $sortedServices = $agent->services->sortBy('service_name')->values();
                 @endphp
                 @if($sortedServices->count() > 0)
-                    <table class="w-full text-left text-sm" id="services-table">
-                        <tbody class="divide-y divide-slate-800" id="services-tbody">
+                    <div class="max-h-72 overflow-y-auto pr-1 custom-scrollbar">
+                        <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-2" id="services-grid">
                             @foreach($sortedServices as $svc)
-                                <tr class="service-row hover:bg-slate-800/30 transition-all" data-name="{{ strtolower($svc->service_name) }}">
-                                    <td class="px-5 py-3 font-medium text-slate-300">{{ $svc->service_name }}</td>
-                                    <td class="px-5 py-3 text-right">
-                                        @if(strtolower($svc->status) === 'running')
-                                            <span class="text-emerald-400 text-xs font-semibold">● Running</span>
-                                        @else
-                                            <span class="text-rose-400 text-xs font-semibold">● {{ $svc->status }}</span>
-                                        @endif
-                                    </td>
-                                </tr>
+                                @php
+                                    $isActive = in_array(strtolower($svc->status), ['running', 'active']);
+                                @endphp
+                                <div class="service-item flex items-center justify-between p-2 rounded-lg bg-slate-950/50 border border-slate-800/80 hover:bg-slate-800/50 transition" data-name="{{ strtolower($svc->service_name) }}">
+                                    <span class="text-xs text-slate-300 truncate mr-2" title="{{ $svc->service_name }}">
+                                        {{ $svc->service_name }}
+                                    </span>
+                                    <div class="flex items-center gap-1.5 shrink-0" title="Status: {{ $svc->status }}">
+                                        <div class="w-1.5 h-1.5 rounded-full {{ $isActive ? 'bg-emerald-500 shadow-[0_0_4px_#10b981]' : 'bg-rose-500 shadow-[0_0_4px_#f43f5e]' }}"></div>
+                                    </div>
+                                </div>
                             @endforeach
-                        </tbody>
-                    </table>
-                    <!-- Pagination Controls -->
-                    <div class="border-t border-slate-800 px-5 py-3 flex items-center justify-between text-xs text-slate-400" id="services-pagination">
-                        <span id="services-info"></span>
-                        <div class="flex items-center gap-1">
-                            <button id="services-prev" onclick="changeServicePage(-1)" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 disabled:opacity-30 disabled:cursor-not-allowed transition font-medium">‹ Prev</button>
-                            <span id="services-pages" class="flex gap-1"></span>
-                            <button id="services-next" onclick="changeServicePage(1)" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 disabled:opacity-30 disabled:cursor-not-allowed transition font-medium">Next ›</button>
                         </div>
+                        <div id="services-empty" class="hidden text-sm text-slate-500 text-center py-8">Tidak ada service yang cocok.</div>
                     </div>
-                    <div id="services-empty" class="hidden text-sm text-slate-500 text-center py-6">Tidak ada service yang cocok.</div>
                 @else
                     <p class="text-sm text-slate-500 text-center py-6">Belum ada data service.</p>
                 @endif
@@ -191,84 +181,30 @@
 
         <script>
         (function() {
-            const PER_PAGE = 10;
-            let currentPage = 1;
-            let currentQuery = '';
-
-            function getFilteredRows() {
-                return Array.from(document.querySelectorAll('#services-tbody .service-row')).filter(function(row) {
-                    return (row.dataset.name || '').includes(currentQuery);
-                });
-            }
-
-            function render() {
-                const filteredRows = getFilteredRows();
-                const totalPages = Math.max(1, Math.ceil(filteredRows.length / PER_PAGE));
-                if (currentPage > totalPages) { currentPage = totalPages; }
-
-                const start = (currentPage - 1) * PER_PAGE;
-                const end = start + PER_PAGE;
-
-                // Show/hide rows
-                Array.from(document.querySelectorAll('#services-tbody .service-row')).forEach(function(r) {
-                    r.style.display = 'none';
-                });
-                filteredRows.slice(start, end).forEach(function(r) {
-                    r.style.display = '';
-                });
-
-                var emptyEl = document.getElementById('services-empty');
-                var paginationEl = document.getElementById('services-pagination');
-                if (filteredRows.length === 0) {
-                    emptyEl.classList.remove('hidden');
-                    paginationEl.classList.add('hidden');
-                } else {
-                    emptyEl.classList.add('hidden');
-                    paginationEl.classList.remove('hidden');
-                }
-
-                var infoEl = document.getElementById('services-info');
-                var from = filteredRows.length === 0 ? 0 : start + 1;
-                var to = Math.min(end, filteredRows.length);
-                infoEl.textContent = 'Menampilkan ' + from + '–' + to + ' dari ' + filteredRows.length + ' service';
-
-                document.getElementById('services-prev').disabled = currentPage <= 1;
-                document.getElementById('services-next').disabled = currentPage >= totalPages;
-
-                var pagesEl = document.getElementById('services-pages');
-                pagesEl.innerHTML = '';
-                var maxBtns = 5;
-                var startPage = Math.max(1, currentPage - Math.floor(maxBtns / 2));
-                var endPage = Math.min(totalPages, startPage + maxBtns - 1);
-                if (endPage - startPage < maxBtns - 1) { startPage = Math.max(1, endPage - maxBtns + 1); }
-
-                for (var i = startPage; i <= endPage; i++) {
-                    (function(page) {
-                        var btn = document.createElement('button');
-                        btn.textContent = page;
-                        btn.className = 'px-2.5 py-1 rounded font-medium transition ' + (page === currentPage ? 'bg-blue-600 text-white' : 'bg-slate-800 hover:bg-slate-700 text-slate-300');
-                        btn.onclick = function() { currentPage = page; render(); };
-                        pagesEl.appendChild(btn);
-                    })(i);
-                }
-            }
-
             window.filterServices = function(query) {
-                currentQuery = query.toLowerCase().trim();
-                currentPage = 1;
-                render();
-            };
+                query = query.toLowerCase().trim();
+                let visibleCount = 0;
+                
+                const items = document.querySelectorAll('.service-item');
+                items.forEach(function(item) {
+                    if ((item.dataset.name || '').includes(query)) {
+                        item.style.display = 'flex';
+                        visibleCount++;
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
 
-            window.changeServicePage = function(delta) {
-                var filteredRows = getFilteredRows();
-                var totalPages = Math.max(1, Math.ceil(filteredRows.length / PER_PAGE));
-                currentPage = Math.min(Math.max(1, currentPage + delta), totalPages);
-                render();
+                const emptyEl = document.getElementById('services-empty');
+                if (emptyEl) {
+                    emptyEl.style.display = visibleCount === 0 ? 'block' : 'none';
+                }
+                
+                const countEl = document.getElementById('services-count');
+                if (countEl) {
+                    countEl.textContent = visibleCount;
+                }
             };
-
-            document.addEventListener('DOMContentLoaded', function() {
-                render();
-            });
         })();
         </script>
 
