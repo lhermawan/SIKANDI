@@ -7,6 +7,9 @@ use Maatwebsite\Excel\Concerns\FromQuery;
 use Maatwebsite\Excel\Concerns\Exportable;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
+use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
+use Illuminate\Database\Eloquent\Relations\Relation;
+use Illuminate\Database\Query\Builder;
 
 class WebsitesExport implements FromQuery, WithHeadings, WithMapping
 {
@@ -19,7 +22,7 @@ class WebsitesExport implements FromQuery, WithHeadings, WithMapping
         $this->request = $request;
     }
 
-    public function query()
+    public function query(): Builder|EloquentBuilder|Relation
     {
         $query = Website::query()->with(['configurationItem', 'organization'])->latest('last_checked_at');
 
