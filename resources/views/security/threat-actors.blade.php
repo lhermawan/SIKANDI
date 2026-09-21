@@ -115,9 +115,18 @@
                             </td>
                             <td class="px-4 py-4 text-right">
                                 @if($attacker->reputation && $attacker->reputation->is_whitelisted)
-                                    <span class="px-3 py-1.5 bg-blue-500/10 text-blue-400 border border-blue-500/30 rounded-lg shadow-sm text-[11px] font-bold uppercase inline-flex items-center gap-1.5">
-                                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> Whitelisted
-                                    </span>
+                                    <div class="flex gap-2 justify-end items-center">
+                                        <span class="px-3 py-1.5 bg-blue-500/10 text-blue-400 border border-blue-500/30 rounded-lg shadow-sm text-[11px] font-bold uppercase inline-flex items-center gap-1.5">
+                                            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> Whitelisted
+                                        </span>
+                                        <form action="{{ route('security.threat-actors.remove-whitelist') }}" method="POST" class="inline">
+                                            @csrf
+                                            <input type="hidden" name="ip_address" value="{{ $attacker->source_ip }}">
+                                            <button type="submit" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium rounded shadow shadow-slate-900/50 transition text-[11px] uppercase inline-flex items-center gap-1" onclick="return confirm('Cabut IP {{ $attacker->source_ip }} dari daftar Whitelist?');">
+                                                Cabut
+                                            </button>
+                                        </form>
+                                    </div>
                                 @elseif($attacker->block_status === 'executed')
                                     <div class="flex gap-2 justify-end items-center">
                                         <span class="px-2 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 rounded-lg shadow-sm text-[11px] font-bold uppercase inline-flex items-center gap-1.5">

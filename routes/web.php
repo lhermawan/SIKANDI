@@ -105,6 +105,7 @@ Route::middleware('auth')->group(function () {
             Route::post('/threat-actors/bulk-block', [DashboardController::class, 'draftQuickBlockBulk'])->name('threat-actors.bulk-block');
             Route::post('/threat-actors/whitelist', [DashboardController::class, 'whitelistIp'])->name('threat-actors.whitelist');
             Route::post('/threat-actors/unban', [DashboardController::class, 'unbanIp'])->name('threat-actors.unban');
+            Route::post('/threat-actors/remove-whitelist', [DashboardController::class, 'removeWhitelist'])->name('threat-actors.remove-whitelist');
             Route::get('/approvals', [DashboardController::class, 'socApprovals'])->name('approvals.index');
 
             // Rules

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Jobs\EnrichIpReputationJob;
+use App\Models\Agent;
 use App\Models\Assessment;
 use App\Models\Asset;
 use App\Models\AuditLog;
@@ -286,13 +287,21 @@ class DashboardController extends Controller
 
         $ip = $request->ip_address;
 
+        // Tandai sebagai Whitelisted otomatis setelah di Unban
+        $reputation = IpReputation::firstOrCreate(
+            ['ip_address' => $ip],
+            ['is_public' => true]
+        );
+        $reputation->is_whitelisted = true;
+        $reputation->save();
+
         // Broadcast perintah unban_ip ke seluruh agen
-        $agents = \App\Models\Agent::all();
+        $agents = Agent::all();
         foreach ($agents as $agent) {
             $agent->commands()->create([
                 'action' => 'unban_ip',
                 'paths' => [$ip], // Kita gunakan field paths untuk menyimpan target IP
-                'status' => 'pending'
+                'status' => 'pending',
             ]);
         }
 
@@ -304,10 +313,27 @@ class DashboardController extends Controller
             ->update([
                 'status' => 'resolved',
                 'performed_by' => Auth::id(),
-                'description' => "Blokir dicabut secara manual (UNBAN). Target IP: {$ip}"
+                'description' => "Blokir dicabut secara manual (UNBAN) dan otomatis dimasukkan ke Whitelist. Target IP: {$ip}",
             ]);
 
-        return redirect()->back()->with('success', "Perintah UNBAN darurat untuk IP {$ip} telah disiarkan ke seluruh agen. Blokir IPTables/Fail2ban akan segera dicabut.");
+        return redirect()->back()->with('success', "Perintah UNBAN darurat untuk IP {$ip} telah disiarkan ke seluruh agen dan IP dimasukkan ke daftar Whitelist.");
+    }
+
+    public function removeWhitelist(Request $request)
+    {
+        $request->validate([
+            'ip_address' => 'required|ip',
+        ]);
+
+        $ip = $request->ip_address;
+        $reputation = IpReputation::where('ip_address', $ip)->first();
+
+        if ($reputation) {
+            $reputation->is_whitelisted = false;
+            $reputation->save();
+        }
+
+        return redirect()->back()->with('success', "IP {$ip} berhasil dicabut dari daftar Whitelist. IP ini akan kembali dievaluasi secara normal.");
     }
 
     public function socApprovals(Request $request)
