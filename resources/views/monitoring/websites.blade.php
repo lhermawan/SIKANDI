@@ -196,6 +196,12 @@
                 </tbody>
             </table>
         </div>
+        
+        @if($websites->hasPages())
+            <div class="px-6 py-4 border-t border-slate-800 bg-slate-900/50">
+                {{ $websites->links('pagination::tailwind') }}
+            </div>
+        @endif
     </div>
 
     <!-- Modal Tambah Website -->
