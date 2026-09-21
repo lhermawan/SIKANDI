@@ -42,6 +42,7 @@ class CheckWebsitesBatch implements ShouldQueue
             $monitoringService->check($website);
         } catch (\Exception $e) {
             Log::error("Failed to monitor website ID {$website->id}: " . $e->getMessage());
+            throw $e; // Throw exception agar Laravel Worker me-retry job ini (atau masuk ke failed_jobs)
         }
     }
 }

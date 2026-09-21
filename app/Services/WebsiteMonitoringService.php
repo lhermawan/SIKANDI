@@ -88,8 +88,6 @@ class WebsiteMonitoringService
             'last_status_change_at' => $statusChanged ? now() : $website->last_status_change_at,
         ]);
 
-        // AUTOMATED INCIDENT RULE (Prompt Section 13):
-        // If website DOWN -> Auto create Incident linked to CI
         if ($status === 'down') {
             $existingIncident = Incident::where('ci_id', $website->ci_id)
                 ->where('source', 'monitoring')
@@ -97,16 +95,26 @@ class WebsiteMonitoringService
                 ->first();
 
             if (! $existingIncident) {
-                Incident::create([
-                    'title' => "Website DOWN Terdeteksi Monitoring: {$website->name}",
-                    'source' => 'monitoring',
-                    'ci_id' => $website->ci_id,
-                    'organization_id' => $website->organization_id,
-                    'priority' => 'high',
-                    'status' => 'open',
-                    'impact_description' => "Website {$website->url} gagal diakses melalui pengecekan otomatis. Pesan: {$errorMessage}",
-                    'detected_at' => now(),
-                ]);
+                $attempts = 0;
+                while ($attempts < 3) {
+                    try {
+                        Incident::create([
+                            'title' => "Website DOWN Terdeteksi Monitoring: {$website->name}",
+                            'source' => 'monitoring',
+                            'ci_id' => $website->ci_id,
+                            'organization_id' => $website->organization_id,
+                            'priority' => 'high',
+                            'status' => 'open',
+                            'impact_description' => "Website {$website->url} gagal diakses melalui pengecekan otomatis. Pesan: {$errorMessage}",
+                            'detected_at' => now(),
+                        ]);
+                        break; // Success
+                    } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
+                        $attempts++;
+                        if ($attempts >= 3) throw $e;
+                        usleep(100000); // 100ms delay
+                    }
+                }
             }
         }
     }
