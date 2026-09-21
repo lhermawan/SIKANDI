@@ -7,11 +7,18 @@ use Maatwebsite\Excel\Concerns\FromQuery;
 use Maatwebsite\Excel\Concerns\Exportable;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
+use Maatwebsite\Excel\Concerns\ShouldAutoSize;
+use Maatwebsite\Excel\Concerns\WithCustomStartCell;
+use Maatwebsite\Excel\Concerns\WithEvents;
+use Maatwebsite\Excel\Events\AfterSheet;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Database\Query\Builder;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Style\Border;
 
-class WebsitesExport implements FromQuery, WithHeadings, WithMapping
+class WebsitesExport implements FromQuery, WithHeadings, WithMapping, ShouldAutoSize, WithCustomStartCell, WithEvents
 {
     use Exportable;
 
@@ -80,6 +87,62 @@ class WebsitesExport implements FromQuery, WithHeadings, WithMapping
             strtoupper($site->ssl_status),
             $sslDays,
             $site->last_checked_at ? $site->last_checked_at->format('Y-m-d H:i:s') : ''
+        ];
+    }
+
+    public function startCell(): string
+    {
+        return 'A4';
+    }
+
+    public function registerEvents(): array
+    {
+        return [
+            AfterSheet::class => function(AfterSheet $event) {
+                $sheet = $event->sheet->getDelegate();
+                
+                // Judul Laporan
+                $sheet->mergeCells('A1:J1');
+                $sheet->setCellValue('A1', 'LAPORAN HASIL MONITORING WEBSITE & SSL (SIKANDI)');
+                $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
+                $sheet->getStyle('A1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+
+                // Tanggal Export
+                $sheet->mergeCells('A2:J2');
+                $sheet->setCellValue('A2', 'Tanggal Export: ' . now()->translatedFormat('d F Y H:i:s'));
+                $sheet->getStyle('A2')->getFont()->setItalic(true);
+                $sheet->getStyle('A2')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+
+                // Styling untuk Headings (Baris ke-4)
+                $sheet->getStyle('A4:J4')->applyFromArray([
+                    'font' => [
+                        'bold' => true,
+                        'color' => ['argb' => 'FFFFFFFF'],
+                    ],
+                    'fill' => [
+                        'fillType' => Fill::FILL_SOLID,
+                        'startColor' => ['argb' => 'FF0F172A'] // Slate 900
+                    ],
+                    'alignment' => [
+                        'horizontal' => Alignment::HORIZONTAL_CENTER,
+                        'vertical' => Alignment::VERTICAL_CENTER,
+                    ]
+                ]);
+
+                // Menambahkan Border ke seluruh data
+                $highestRow = $sheet->getHighestRow();
+                $sheet->getStyle('A4:J' . $highestRow)->applyFromArray([
+                    'borders' => [
+                        'allBorders' => [
+                            'borderStyle' => Border::BORDER_THIN,
+                            'color' => ['argb' => 'FF64748B'], // Slate 500
+                        ],
+                    ],
+                ]);
+
+                // Auto-filter untuk kolom-kolom tabel
+                $sheet->setAutoFilter('A4:J' . $highestRow);
+            },
         ];
     }
 }
