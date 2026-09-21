@@ -151,4 +151,54 @@ class TicketController extends Controller
 
         return back()->with('success', 'Status tiket berhasil diperbarui.');
     }
+
+    public function edit(Ticket $ticket): View
+    {
+        $user = Auth::user();
+        if ($user->hasRole('OPD User') && $ticket->organization_id !== $user->organization_id) {
+            abort(403, 'Anda tidak memiliki akses ke tiket ini.');
+        }
+
+        $services = Service::where('is_active', true)->orderBy('name')->get();
+        $organizations = Organization::orderBy('name')->get();
+        $cis = ConfigurationItem::orderBy('name')->get();
+        $assets = Asset::orderBy('name')->get();
+
+        return view('service-desk.edit', compact('ticket', 'services', 'organizations', 'cis', 'assets'));
+    }
+
+    public function update(Request $request, Ticket $ticket): RedirectResponse
+    {
+        $user = Auth::user();
+        if ($user->hasRole('OPD User') && $ticket->organization_id !== $user->organization_id) {
+            abort(403, 'Anda tidak memiliki akses ke tiket ini.');
+        }
+
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'category' => 'required|in:service_request,incident,access_request,maintenance,question',
+            'service_id' => 'nullable|exists:services,id',
+            'priority' => 'required|in:low,medium,high,critical',
+            'organization_id' => 'required|exists:organizations,id',
+            'ci_id' => 'nullable|exists:configuration_items,id',
+            'asset_id' => 'nullable|exists:assets,id',
+            'description' => 'required|string',
+        ]);
+
+        $ticket->update($validated);
+
+        return redirect()->route('service-desk.tickets.show', $ticket)->with('success', 'Tiket berhasil diperbarui.');
+    }
+
+    public function destroy(Ticket $ticket): RedirectResponse
+    {
+        $user = Auth::user();
+        if ($user->hasRole('OPD User') && $ticket->organization_id !== $user->organization_id) {
+            abort(403, 'Anda tidak memiliki akses untuk menghapus tiket ini.');
+        }
+
+        $ticket->delete();
+
+        return redirect()->route('service-desk.tickets')->with('success', 'Tiket berhasil dihapus.');
+    }
 }

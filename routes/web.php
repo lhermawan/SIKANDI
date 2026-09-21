@@ -71,6 +71,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/tickets/create', [TicketController::class, 'create'])->name('tickets.create');
         Route::post('/tickets', [TicketController::class, 'store'])->name('tickets.store');
         Route::get('/tickets/{ticket}', [TicketController::class, 'show'])->name('tickets.show');
+        Route::get('/tickets/{ticket}/edit', [TicketController::class, 'edit'])->name('tickets.edit');
+        Route::put('/tickets/{ticket}', [TicketController::class, 'update'])->name('tickets.update');
+        Route::delete('/tickets/{ticket}', [TicketController::class, 'destroy'])->name('tickets.destroy');
         Route::post('/tickets/{ticket}/comment', [TicketController::class, 'addComment'])->name('tickets.comment');
         Route::post('/tickets/{ticket}/status', [TicketController::class, 'updateStatus'])->name('tickets.status');
     });
