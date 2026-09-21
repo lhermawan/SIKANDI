@@ -239,14 +239,26 @@
                     </div>
                     
                     @if($cmdb->agent->services->count() > 0)
-                        <div class="border-t border-slate-800 pt-3">
-                            <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-2">Monitored Services</span>
-                            <div class="flex flex-wrap gap-2">
-                                @foreach($cmdb->agent->services as $svc)
-                                    <span class="text-[10px] px-2 py-1 rounded-lg border {{ strtolower($svc->status) === 'running' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20' }}">
-                                        {{ $svc->service_name }}: {{ $svc->status }}
-                                    </span>
-                                @endforeach
+                        <div class="border-t border-slate-800 pt-4 mt-4">
+                            <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-3">
+                                Monitored Services ({{ $cmdb->agent->services->count() }})
+                            </span>
+                            <div class="max-h-52 overflow-y-auto pr-1 custom-scrollbar">
+                                <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
+                                    @foreach($cmdb->agent->services->sortBy('service_name') as $svc)
+                                        @php
+                                            $isActive = in_array(strtolower($svc->status), ['running', 'active']);
+                                        @endphp
+                                        <div class="flex items-center justify-between p-2 rounded-lg bg-slate-950/50 border border-slate-800/80 hover:bg-slate-800/50 transition">
+                                            <span class="text-xs text-slate-300 truncate mr-2" title="{{ $svc->service_name }}">
+                                                {{ $svc->service_name }}
+                                            </span>
+                                            <div class="flex items-center gap-1.5 shrink-0" title="Status: {{ $svc->status }}">
+                                                <div class="w-1.5 h-1.5 rounded-full {{ $isActive ? 'bg-emerald-500 shadow-[0_0_4px_#10b981]' : 'bg-rose-500 shadow-[0_0_4px_#f43f5e]' }}"></div>
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                </div>
                             </div>
                         </div>
                     @endif
