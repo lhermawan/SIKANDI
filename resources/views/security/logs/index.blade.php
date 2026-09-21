@@ -82,9 +82,13 @@
             </thead>
             <tbody class="divide-y divide-slate-800/60">
                 @forelse($events as $event)
-                    <tr class="hover:bg-slate-800/40 transition">
+                    <!-- Main Row -->
+                    <tr class="hover:bg-slate-800/40 transition cursor-pointer group" onclick="document.getElementById('detail-{{ $event->id }}').classList.toggle('hidden')">
                         <td class="px-6 py-4 text-slate-300">
-                            {{ $event->timestamp->format('d M Y H:i:s') }}
+                            <div class="flex items-center gap-2">
+                                <svg class="w-4 h-4 text-slate-500 group-hover:text-blue-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                                {{ $event->timestamp->format('d M Y H:i:s') }}
+                            </div>
                         </td>
                         <td class="px-6 py-4">
                             @if($event->severity === 'critical')
@@ -100,8 +104,19 @@
                             @endif
                         </td>
                         <td class="px-6 py-4">
-                            <span class="text-white font-medium block">{{ strtoupper($event->event_type) }}</span>
-                            <span class="text-xs text-slate-500">{{ strtoupper($event->action) }}</span>
+                            @php
+                                $typeMap = [
+                                    'FAIL2BAN_BAN' => ['icon' => '🛡️', 'label' => 'IP Diblokir Otomatis'],
+                                    'FAIL2BAN_UNBAN' => ['icon' => '✅', 'label' => 'Blokir IP Dilepas'],
+                                    'LOGIN' => ['icon' => $event->action === 'SUCCESS' ? '🔑' : '⚠️', 'label' => $event->action === 'SUCCESS' ? 'Login Berhasil' : 'Login Gagal']
+                                ];
+                                $mapped = $typeMap[strtoupper($event->event_type)] ?? ['icon' => '📌', 'label' => strtoupper($event->event_type)];
+                            @endphp
+                            <span class="text-white font-medium block flex items-center gap-1.5">
+                                <span>{{ $mapped['icon'] }}</span>
+                                {{ $mapped['label'] }}
+                            </span>
+                            <span class="text-xs text-slate-500 ml-6">{{ strtoupper($event->action) }}</span>
                         </td>
                         <td class="px-6 py-4">
                             <span class="text-slate-300 block">{{ $event->hostname }}</span>
@@ -117,7 +132,86 @@
                             </span>
                         </td>
                         <td class="px-6 py-4 text-right">
-                            <a href="{{ route('security.logs.show', $event) }}" class="text-blue-400 hover:text-blue-300 font-medium text-xs">Lihat</a>
+                            <button type="button" class="text-blue-400 hover:text-blue-300 font-medium text-xs">Detail</button>
+                        </td>
+                    </tr>
+                    
+                    <!-- Accordion Detail Row -->
+                    <tr id="detail-{{ $event->id }}" class="hidden bg-slate-900/50">
+                        <td colspan="7" class="px-6 py-6 border-t border-slate-800/50">
+                            <div class="max-w-5xl mx-auto space-y-4">
+                                
+                                {{-- 1. Narrative Section --}}
+                                <div class="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 flex gap-4 items-start">
+                                    <div class="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center shrink-0 mt-0.5">
+                                        <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                    </div>
+                                    <div>
+                                        <h4 class="text-sm font-bold text-blue-400 mb-1">Narasi Kejadian</h4>
+                                        <p class="text-sm text-slate-300 leading-relaxed">
+                                            {!! Str::markdown($event->narrative) !!}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {{-- 2. Incident Link Banner (if connected) --}}
+                                @if($event->incident_id)
+                                <div class="bg-rose-500/10 border border-rose-500/20 rounded-xl p-4 flex flex-col sm:flex-row gap-4 items-center justify-between">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-8 h-8 rounded-full bg-rose-500/20 flex items-center justify-center shrink-0">
+                                            <span class="text-rose-400">🚨</span>
+                                        </div>
+                                        <div>
+                                            <p class="text-sm font-bold text-rose-400">Log Diekskalasi Menjadi Insiden Keamanan</p>
+                                            <p class="text-xs text-rose-300/80">Log ini terhubung dengan insiden: {{ $event->incident->title ?? 'Suspicious Activity' }}</p>
+                                        </div>
+                                    </div>
+                                    <a href="{{ route('security.incidents.show', $event->incident_id) }}" class="shrink-0 bg-rose-500 hover:bg-rose-600 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-colors shadow-lg shadow-rose-500/20">
+                                        Lihat Tiket Insiden ➔
+                                    </a>
+                                </div>
+                                @endif
+
+                                {{-- 3. Technical Grid --}}
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div class="bg-slate-950 border border-slate-800 rounded-xl p-4">
+                                        <h5 class="text-xs font-bold text-slate-500 uppercase mb-3">Event Info</h5>
+                                        <div class="space-y-2">
+                                            <div>
+                                                <span class="text-[10px] text-slate-500 block">Event ID</span>
+                                                <span class="text-xs text-slate-300 font-mono">{{ $event->event_id }}</span>
+                                            </div>
+                                            <div>
+                                                <span class="text-[10px] text-slate-500 block">Raw Reason</span>
+                                                <span class="text-xs text-slate-300">{{ $event->reason }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="bg-slate-950 border border-slate-800 rounded-xl p-4">
+                                        <h5 class="text-xs font-bold text-slate-500 uppercase mb-3">Context Info</h5>
+                                        <div class="space-y-2">
+                                            <div>
+                                                <span class="text-[10px] text-slate-500 block">Process</span>
+                                                <span class="text-xs text-slate-300">{{ $event->process ?? '-' }}</span>
+                                            </div>
+                                            <div>
+                                                <span class="text-[10px] text-slate-500 block">Agent ID</span>
+                                                <span class="text-xs text-slate-300">{{ $event->agent->agent_id ?? '-' }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 flex flex-col justify-center items-center text-center">
+                                        <span class="text-[10px] text-slate-500 uppercase font-bold mb-1">Risk Score</span>
+                                        <span class="text-3xl font-bold font-mono {{ $event->risk_score >= 80 ? 'text-rose-400' : ($event->risk_score >= 50 ? 'text-amber-400' : 'text-blue-400') }}">
+                                            {{ $event->risk_score }}
+                                            <span class="text-sm text-slate-600">/100</span>
+                                        </span>
+                                    </div>
+                                </div>
+                                
+                            </div>
                         </td>
                     </tr>
                 @empty
