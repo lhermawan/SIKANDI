@@ -221,7 +221,7 @@
                             </td>
                             <td class="py-3.5 px-4 text-right flex items-center justify-end gap-2">
                                 <a href="{{ route('ikasandi.assessment', ['org_id' => $asm->organization_id]) }}" class="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-medium">
-                                    Tinjau Data
+                                    Edit / Tinjau
                                 </a>
                                 @if(in_array($asm->status, ['verified', 'published']))
                                     <a href="{{ route('ikasandi.assessment.print', $asm) }}" target="_blank" class="px-3 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-medium flex items-center gap-1">
