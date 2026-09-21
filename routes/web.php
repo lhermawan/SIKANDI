@@ -103,7 +103,6 @@ Route::middleware('auth')->group(function () {
             // Threat Actors & HitL Approvals
             Route::get('/threat-actors', [DashboardController::class, 'threatActors'])->name('threat-actors.index');
             Route::post('/threat-actors/bulk-block', [DashboardController::class, 'draftQuickBlockBulk'])->name('threat-actors.bulk-block');
-            Route::post('/threat-actors/quick-block', [DashboardController::class, 'draftQuickBlock'])->name('admin.soc.quick-block');
             Route::post('/threat-actors/whitelist', [DashboardController::class, 'whitelistIp'])->name('threat-actors.whitelist');
             Route::post('/threat-actors/unban', [DashboardController::class, 'unbanIp'])->name('threat-actors.unban');
             Route::post('/threat-actors/remove-whitelist', [DashboardController::class, 'removeWhitelist'])->name('threat-actors.remove-whitelist');
@@ -136,4 +135,42 @@ Route::middleware('auth')->group(function () {
         Route::post('/agents/{agent}/disk/scan', [DiskManagerController::class, 'requestScan'])->name('agents.disk.scan');
         Route::post('/agents/{agent}/disk/delete', [DiskManagerController::class, 'requestDelete'])->name('agents.disk.delete');
     });
+
+    // IKASANDI (Indikator Keamanan Informasi OPD)
+    Route::prefix('ikasandi')->name('ikasandi.')->group(function () {
+        Route::get('/dashboard', [App\Http\Controllers\IkasandiController::class, 'dashboard'])->name('dashboard');
+        Route::get('/assessment', [App\Http\Controllers\IkasandiController::class, 'assessment'])->name('assessment');
+        Route::post('/assessment/{assessment}', [App\Http\Controllers\IkasandiController::class, 'submitAssessment'])->name('assessment.submit');
+    });
+
+    // Knowledge Base & Documentation
+    Route::resource('knowledge', App\Http\Controllers\KnowledgeController::class);
+    Route::post('/documents', [App\Http\Controllers\KnowledgeController::class, 'storeDocument'])->name('documents.store');
+    Route::get('/documents/{document}/download', [App\Http\Controllers\KnowledgeController::class, 'downloadDocument'])->name('documents.download');
+    Route::delete('/documents/{document}', [App\Http\Controllers\KnowledgeController::class, 'destroyDocument'])->name('documents.destroy');
+
+    // Administration (Roles & OPD)
+    Route::prefix('admin')->name('admin.')->middleware(['role:Super Admin|Admin Persandian'])->group(function () {
+        Route::get('/dashboard', [App\Http\Controllers\DashboardController::class, 'index'])->name('dashboard');
+        Route::post('/soc/quick-block', [App\Http\Controllers\DashboardController::class, 'draftQuickBlock'])->name('soc.quick-block');
+        Route::get('/users', [App\Http\Controllers\UserController::class, 'index'])->name('users.index');
+        Route::post('/users', [App\Http\Controllers\UserController::class, 'store'])->name('users.store');
+        Route::get('/users/{user}/edit', [App\Http\Controllers\UserController::class, 'edit'])->name('users.edit');
+        Route::put('/users/{user}', [App\Http\Controllers\UserController::class, 'update'])->name('users.update');
+        Route::delete('/users/{user}', [App\Http\Controllers\UserController::class, 'destroy'])->name('users.destroy');
+        Route::post('/users/{user}/toggle-active', [App\Http\Controllers\UserController::class, 'toggleActive'])->name('users.toggle-active');
+        Route::post('/users/{user}/unlock', [App\Http\Controllers\UserController::class, 'unlock'])->name('users.unlock');
+        Route::get('/organizations', [App\Http\Controllers\OrganizationController::class, 'index'])->name('organizations.index');
+        Route::post('/organizations', [App\Http\Controllers\OrganizationController::class, 'store'])->name('organizations.store');
+        Route::put('/organizations/{organization}', [App\Http\Controllers\OrganizationController::class, 'update'])->name('organizations.update');
+        Route::get('/audit-logs', [App\Http\Controllers\AuditLogController::class, 'index'])->name('audit-logs');
+        
+        // Roles Management
+        Route::resource('roles', \App\Http\Controllers\Admin\RoleController::class)->except(['show']);
+
+        // Master Data: Lokasi & Ruang
+        Route::resource('locations', \App\Http\Controllers\Admin\LocationController::class)->except(['create', 'show', 'edit']);
+        Route::patch('locations/{location}/toggle', [\App\Http\Controllers\Admin\LocationController::class, 'toggle'])->name('locations.toggle');
+    });
+
 });
