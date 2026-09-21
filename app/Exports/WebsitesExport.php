@@ -58,9 +58,11 @@ class WebsitesExport implements FromQuery, WithHeadings, WithMapping, ShouldAuto
         return [
             'Nama Website',
             'URL',
+            'IP Address',
             'OPD Pengelola',
             'CI Terkait',
             'Status Saat Ini',
+            'Keterangan Error',
             'HTTP Status',
             'Response Time (ms)',
             'Status SSL',
@@ -79,9 +81,11 @@ class WebsitesExport implements FromQuery, WithHeadings, WithMapping, ShouldAuto
         return [
             $site->name,
             $site->url,
+            $site->ip_address,
             $site->organization ? $site->organization->name : '',
             $site->configurationItem ? $site->configurationItem->ci_code : '',
             strtoupper($site->current_status),
+            $site->current_status === 'down' ? $site->last_error : '',
             $site->http_status_code,
             $site->response_time_ms,
             strtoupper($site->ssl_status),
@@ -102,19 +106,19 @@ class WebsitesExport implements FromQuery, WithHeadings, WithMapping, ShouldAuto
                 $sheet = $event->sheet->getDelegate();
                 
                 // Judul Laporan
-                $sheet->mergeCells('A1:J1');
+                $sheet->mergeCells('A1:L1');
                 $sheet->setCellValue('A1', 'LAPORAN HASIL MONITORING WEBSITE & SSL (SIKANDI)');
                 $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
                 $sheet->getStyle('A1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
                 // Tanggal Export
-                $sheet->mergeCells('A2:J2');
+                $sheet->mergeCells('A2:L2');
                 $sheet->setCellValue('A2', 'Tanggal Export: ' . now()->translatedFormat('d F Y H:i:s'));
                 $sheet->getStyle('A2')->getFont()->setItalic(true);
                 $sheet->getStyle('A2')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
                 // Styling untuk Headings (Baris ke-4)
-                $sheet->getStyle('A4:J4')->applyFromArray([
+                $sheet->getStyle('A4:L4')->applyFromArray([
                     'font' => [
                         'bold' => true,
                         'color' => ['argb' => 'FFFFFFFF'],
@@ -131,7 +135,7 @@ class WebsitesExport implements FromQuery, WithHeadings, WithMapping, ShouldAuto
 
                 // Menambahkan Border ke seluruh data
                 $highestRow = $sheet->getHighestRow();
-                $sheet->getStyle('A4:J' . $highestRow)->applyFromArray([
+                $sheet->getStyle('A4:L' . $highestRow)->applyFromArray([
                     'borders' => [
                         'allBorders' => [
                             'borderStyle' => Border::BORDER_THIN,
@@ -141,7 +145,7 @@ class WebsitesExport implements FromQuery, WithHeadings, WithMapping, ShouldAuto
                 ]);
 
                 // Auto-filter untuk kolom-kolom tabel
-                $sheet->setAutoFilter('A4:J' . $highestRow);
+                $sheet->setAutoFilter('A4:L' . $highestRow);
             },
         ];
     }
