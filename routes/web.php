@@ -1,10 +1,12 @@
 <?php
 
+use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\LocationController;
+use App\Http\Controllers\Admin\OrganizationController;
 use App\Http\Controllers\Admin\RoleController;
+use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\AgentController;
 use App\Http\Controllers\AssetController;
-use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CmdbController;
 use App\Http\Controllers\DashboardController;
@@ -14,13 +16,11 @@ use App\Http\Controllers\IkasandiController;
 use App\Http\Controllers\IncidentController;
 use App\Http\Controllers\KnowledgeController;
 use App\Http\Controllers\MonitoringController;
-use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\RiskController;
 use App\Http\Controllers\SecurityIncidentController;
 use App\Http\Controllers\SecurityLogController;
 use App\Http\Controllers\SecurityRuleController;
 use App\Http\Controllers\TicketController;
-use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
 /*

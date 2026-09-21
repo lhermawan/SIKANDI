@@ -68,4 +68,15 @@ class OrganizationController extends Controller
 
         return back()->with('success', "OPD {$organization->name} berhasil diperbarui.");
     }
+
+    public function destroy(Organization $organization): RedirectResponse
+    {
+        if ($organization->users()->count() > 0) {
+            return back()->with('error', 'Tidak dapat menghapus OPD karena masih memiliki User terkait.');
+        }
+
+        $organization->delete();
+
+        return back()->with('success', 'OPD / Unit berhasil dihapus.');
+    }
 }
