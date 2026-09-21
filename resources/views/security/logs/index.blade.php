@@ -123,8 +123,8 @@
                             <span class="text-xs text-slate-500">{{ $event->agent->agent_id ?? 'Unknown Agent' }}</span>
                         </td>
                         <td class="px-6 py-4">
-                            <span class="text-slate-300 block">{{ $event->username ?? '-' }}</span>
-                            <span class="text-xs text-slate-500">{{ $event->source_ip ?? '-' }}</span>
+                            <span class="text-slate-300 block">{{ ($event->username === 'N/A' || empty($event->username)) ? '-' : $event->username }}</span>
+                            <span class="text-xs text-slate-500">{{ ($event->source_ip === 'N/A' || empty($event->source_ip)) ? 'Local/Internal' : $event->source_ip }}</span>
                         </td>
                         <td class="px-6 py-4">
                             <span class="font-mono text-xs {{ $event->risk_score >= 80 ? 'text-rose-400' : ($event->risk_score >= 50 ? 'text-amber-400' : 'text-slate-400') }}">
