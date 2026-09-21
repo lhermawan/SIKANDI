@@ -312,6 +312,8 @@
                 </div>
             </form>
         </div>
+    </div>
+    
     <!-- Scanner Modal -->
     <div id="scannerModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4">
         <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-lg w-full p-8 shadow-2xl space-y-6 text-center relative overflow-hidden">
