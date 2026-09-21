@@ -2,14 +2,18 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\EnrichIpReputationJob;
 use App\Models\Assessment;
 use App\Models\Asset;
 use App\Models\AuditLog;
 use App\Models\ConfigurationItem;
 use App\Models\Incident;
+use App\Models\IpReputation;
 use App\Models\Organization;
 use App\Models\Risk;
+use App\Models\SecurityEvent;
 use App\Models\SecurityIncident;
+use App\Models\SecurityIncidentResponse;
 use App\Models\Ticket;
 use App\Models\Website;
 use Illuminate\Http\Request;
@@ -119,27 +123,27 @@ class DashboardController extends Controller
             'security_incidents' => SecurityIncident::where('workflow_status', '!=', 'closed')->count(),
             'critical_risks' => Risk::where('risk_level', 'critical')->count(),
             'high_severity_alerts' => SecurityIncident::where('severity', 'high')->orWhere('severity', 'critical')->where('workflow_status', '!=', 'closed')->count(),
-            'total_security_events' => \App\Models\SecurityEvent::count(),
+            'total_security_events' => SecurityEvent::count(),
         ];
 
         // SOC Analytics: Incident Trend (Last 7 Days)
-        $last7Days = collect(range(6, 0))->map(fn($day) => now()->subDays($day)->format('Y-m-d'));
-        
+        $last7Days = collect(range(6, 0))->map(fn ($day) => now()->subDays($day)->format('Y-m-d'));
+
         $trendData = SecurityIncident::where('created_at', '>=', now()->subDays(6)->startOfDay())
             ->selectRaw('DATE(created_at) as date, COUNT(*) as total')
             ->groupBy('date')
             ->pluck('total', 'date');
 
-        $incidentTrend = $last7Days->map(fn($date) => [
+        $incidentTrend = $last7Days->map(fn ($date) => [
             'date' => $date,
-            'total' => $trendData->get($date, 0)
+            'total' => $trendData->get($date, 0),
         ]);
 
         // SOC Analytics: Incidents by Severity
         $severityData = SecurityIncident::selectRaw('severity, COUNT(*) as total')
             ->groupBy('severity')
             ->pluck('total', 'severity');
-        
+
         $severityChart = [
             'Critical' => $severityData->get('critical', 0),
             'High' => $severityData->get('high', 0),
@@ -148,7 +152,7 @@ class DashboardController extends Controller
         ];
 
         // SOC Analytics: Top 5 Attacker IPs
-        $topAttackers = \App\Models\SecurityEvent::selectRaw('source_ip, COUNT(*) as total_events')
+        $topAttackers = SecurityEvent::selectRaw('source_ip, COUNT(*) as total_events')
             ->whereNotNull('source_ip')
             ->where('source_ip', '!=', '')
             ->where('source_ip', '!=', '127.0.0.1')
@@ -159,19 +163,19 @@ class DashboardController extends Controller
 
         // Sambungkan dengan Threat Intelligence dan jalankan pengecekan Background jika belum ada cache
         foreach ($topAttackers as $attacker) {
-            $rep = \App\Models\IpReputation::where('ip_address', $attacker->source_ip)->first();
-            if (!$rep) {
+            $rep = IpReputation::where('ip_address', $attacker->source_ip)->first();
+            if (! $rep) {
                 // Dispatch Job agar ditarik oleh Queue Worker, UI tetap instan
-                \App\Jobs\EnrichIpReputationJob::dispatch($attacker->source_ip);
+                EnrichIpReputationJob::dispatch($attacker->source_ip);
             }
             $attacker->reputation = $rep;
 
             // Cek apakah IP ini sudah ada di antrean blokir atau sudah diblokir
-            $blockResponse = \App\Models\SecurityIncidentResponse::where('action', 'block_ip')
+            $blockResponse = SecurityIncidentResponse::where('action', 'block_ip')
                 ->where('description', 'like', "%{$attacker->source_ip}%")
                 ->whereIn('status', ['pending', 'executed'])
                 ->first();
-                
+
             $attacker->block_status = $blockResponse ? $blockResponse->status : null;
         }
 
@@ -181,26 +185,26 @@ class DashboardController extends Controller
         $recentAuditLogs = AuditLog::latest('created_at')->take(6)->get();
 
         // Rekomendasi Tindakan (Pending SOC Actions)
-        $pendingActions = \App\Models\SecurityIncidentResponse::where('status', 'pending')
+        $pendingActions = SecurityIncidentResponse::where('status', 'pending')
             ->with('incident')
             ->latest()
             ->take(5)
             ->get();
 
         return view('dashboard.admin', compact(
-            'stats', 'recentCis', 'recentTickets', 'recentIncidents', 
+            'stats', 'recentCis', 'recentTickets', 'recentIncidents',
             'recentAuditLogs', 'incidentTrend', 'severityChart', 'topAttackers', 'pendingActions'
         ));
     }
 
     public function threatActors(Request $request)
     {
-        $query = \App\Models\SecurityEvent::selectRaw('source_ip, COUNT(*) as total_events, GROUP_CONCAT(DISTINCT hostname SEPARATOR ", ") as targeted_agents, GROUP_CONCAT(DISTINCT event_type SEPARATOR ", ") as event_types, MAX(created_at) as last_seen')
+        $query = SecurityEvent::selectRaw('source_ip, COUNT(*) as total_events, GROUP_CONCAT(DISTINCT hostname SEPARATOR ", ") as targeted_agents, GROUP_CONCAT(DISTINCT event_type SEPARATOR ", ") as event_types, MAX(created_at) as last_seen')
             ->whereNotNull('source_ip')
             ->where('source_ip', '!=', '')
             ->where('source_ip', '!=', '127.0.0.1')
             ->where('source_ip', '!=', 'N/A');
-            
+
         if ($request->filled('search')) {
             $query->where('source_ip', 'like', "%{$request->search}%");
         }
@@ -212,22 +216,22 @@ class DashboardController extends Controller
 
         // Separate whitelisted and non-whitelisted to custom sort, or handle in loop
         foreach ($topAttackers as $attacker) {
-            $rep = \App\Models\IpReputation::where('ip_address', $attacker->source_ip)->first();
-            if (!$rep) {
-                \App\Jobs\EnrichIpReputationJob::dispatch($attacker->source_ip);
+            $rep = IpReputation::where('ip_address', $attacker->source_ip)->first();
+            if (! $rep) {
+                EnrichIpReputationJob::dispatch($attacker->source_ip);
             }
             $attacker->reputation = $rep;
 
-            $blockResponse = \App\Models\SecurityIncidentResponse::where('action', 'block_ip')
+            $blockResponse = SecurityIncidentResponse::where('action', 'block_ip')
                 ->where('description', 'like', "%{$attacker->source_ip}%")
                 ->whereIn('status', ['pending', 'executed'])
                 ->first();
-                
+
             $attacker->block_status = $blockResponse ? $blockResponse->status : null;
 
             // Check if blocked by fail2ban
-            if (!$attacker->block_status) {
-                $f2b = \App\Models\SecurityEvent::where('source_ip', $attacker->source_ip)
+            if (! $attacker->block_status) {
+                $f2b = SecurityEvent::where('source_ip', $attacker->source_ip)
                     ->whereIn('event_type', ['FAIL2BAN_BAN', 'FAIL2BAN_UNBAN'])
                     ->orderBy('created_at', 'desc')
                     ->first();
@@ -241,8 +245,13 @@ class DashboardController extends Controller
         $topAttackers->setCollection(
             $topAttackers->getCollection()->sortBy(function ($attacker) {
                 // Return 0 if not blocked, 1 if pending, 2 if executed. (To make unblocked top)
-                if ($attacker->block_status === 'executed') return 2;
-                if ($attacker->block_status === 'pending') return 1;
+                if ($attacker->block_status === 'executed') {
+                    return 2;
+                }
+                if ($attacker->block_status === 'pending') {
+                    return 1;
+                }
+
                 return 0;
             })->values()
         );
@@ -253,45 +262,44 @@ class DashboardController extends Controller
     public function whitelistIp(Request $request)
     {
         $request->validate([
-            'ip_address' => 'required|ip'
+            'ip_address' => 'required|ip',
         ]);
 
         $ip = $request->ip_address;
-        
-        $reputation = \App\Models\IpReputation::firstOrCreate(
+
+        $reputation = IpReputation::firstOrCreate(
             ['ip_address' => $ip],
             ['is_public' => true]
         );
-        
+
         $reputation->is_whitelisted = true;
         $reputation->save();
 
         return redirect()->back()->with('success', "IP {$ip} berhasil dimasukkan ke daftar Whitelist. IP ini tidak akan dicurigai lagi.");
     }
 
-    
     public function socApprovals(Request $request)
     {
-        $query = \App\Models\SecurityIncidentResponse::where('status', 'pending')
+        $query = SecurityIncidentResponse::where('status', 'pending')
             ->with('incident');
 
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('action', 'like', "%{$search}%")
-                  ->orWhere('description', 'like', "%{$search}%")
-                  ->orWhereHas('incident', function($q2) use ($search) {
-                      $q2->where('incident_code', 'like', "%{$search}%")
-                         ->orWhere('title', 'like', "%{$search}%")
-                         ->orWhere('source_ip', 'like', "%{$search}%");
-                  });
+                    ->orWhere('description', 'like', "%{$search}%")
+                    ->orWhereHas('incident', function ($q2) use ($search) {
+                        $q2->where('incident_code', 'like', "%{$search}%")
+                            ->orWhere('title', 'like', "%{$search}%")
+                            ->orWhere('source_ip', 'like', "%{$search}%");
+                    });
             });
         }
 
         $pendingActions = $query->latest()
             ->paginate(20)
             ->withQueryString();
-            
+
         return view('security.approvals', compact('pendingActions'));
     }
 
@@ -299,38 +307,38 @@ class DashboardController extends Controller
     {
         $request->validate([
             'ips' => 'required|array',
-            'ips.*' => 'ip'
+            'ips.*' => 'ip',
         ]);
 
         $addedCount = 0;
-        
-        foreach($request->ips as $ip) {
+
+        foreach ($request->ips as $ip) {
             // Check globally if already drafted/blocked
-            $exists = \App\Models\SecurityIncidentResponse::where('action', 'block_ip')
+            $exists = SecurityIncidentResponse::where('action', 'block_ip')
                 ->where('description', 'like', "%{$ip}%")
                 ->whereIn('status', ['pending', 'executed'])
                 ->exists();
-                
-            if(!$exists) {
-                $incident = \App\Models\SecurityIncident::where('source_ip', $ip)->first();
-                if (!$incident) {
-                    $incident = \App\Models\SecurityIncident::create([
-                        'title' => 'Tindakan Proaktif (Bulk): Threat Intel IP ' . $ip,
+
+            if (! $exists) {
+                $incident = SecurityIncident::where('source_ip', $ip)->first();
+                if (! $incident) {
+                    $incident = SecurityIncident::create([
+                        'title' => 'Tindakan Proaktif (Bulk): Threat Intel IP '.$ip,
                         'incident_type' => 'malware',
                         'severity' => 'high',
                         'workflow_status' => 'investigation',
                         'source_ip' => $ip,
                         'description' => 'Insiden dibuat otomatis dari Bulk Action Dashboard SOC untuk menindaklanjuti IP berbahaya.',
-                        'organization_id' => \App\Models\Organization::first()->id ?? 1,
-                        'reporter_id' => \Illuminate\Support\Facades\Auth::id() ?? 1,
+                        'organization_id' => Organization::first()->id ?? 1,
+                        'reporter_id' => Auth::id() ?? 1,
                         'first_seen_at' => now(),
                         'last_seen_at' => now(),
                     ]);
                 }
-                
+
                 $incident->responses()->create([
                     'action' => 'block_ip',
-                    'description' => 'Memblokir IP Address ' . $ip . ' di firewall/iptables.',
+                    'description' => 'Memblokir IP Address '.$ip.' di firewall/iptables.',
                     'status' => 'pending',
                 ]);
                 $addedCount++;
@@ -346,18 +354,18 @@ class DashboardController extends Controller
         $ip = $request->ip;
 
         // Cari insiden terkait IP ini, atau buat baru jika tidak ada
-        $incident = \App\Models\SecurityIncident::where('source_ip', $ip)->first();
+        $incident = SecurityIncident::where('source_ip', $ip)->first();
 
-        if (!$incident) {
-            $incident = \App\Models\SecurityIncident::create([
-                'title' => 'Tindakan Proaktif: Threat Intel IP ' . $ip,
+        if (! $incident) {
+            $incident = SecurityIncident::create([
+                'title' => 'Tindakan Proaktif: Threat Intel IP '.$ip,
                 'incident_type' => 'malware',
                 'severity' => 'high',
                 'workflow_status' => 'investigation',
                 'source_ip' => $ip,
                 'description' => 'Insiden dibuat otomatis dari Dashboard SOC untuk menindaklanjuti IP berbahaya (Malicious) berdasarkan laporan AbuseIPDB.',
-                'organization_id' => \App\Models\Organization::first()->id ?? 1,
-                'reporter_id' => \Illuminate\Support\Facades\Auth::id(),
+                'organization_id' => Organization::first()->id ?? 1,
+                'reporter_id' => Auth::id(),
                 'first_seen_at' => now(),
                 'last_seen_at' => now(),
             ]);
@@ -370,16 +378,16 @@ class DashboardController extends Controller
             ->exists();
 
         if ($exists) {
-            return back()->with('error', 'Tindakan blokir untuk IP ' . $ip . ' sudah ada di antrean atau telah dieksekusi.');
+            return back()->with('error', 'Tindakan blokir untuk IP '.$ip.' sudah ada di antrean atau telah dieksekusi.');
         }
 
         $incident->responses()->create([
             'action' => 'block_ip',
-            'description' => 'Blokir IP Address ' . $ip . ' (Threat Intel: Malicious)',
+            'description' => 'Blokir IP Address '.$ip.' (Threat Intel: Malicious)',
             'status' => 'pending',
             'performed_by' => null,
         ]);
 
-        return back()->with('success', 'Draft blokir untuk IP ' . $ip . ' berhasil ditambahkan ke antrean Menunggu Eksekusi.');
+        return back()->with('success', 'Draft blokir untuk IP '.$ip.' berhasil ditambahkan ke antrean Menunggu Eksekusi.');
     }
 }

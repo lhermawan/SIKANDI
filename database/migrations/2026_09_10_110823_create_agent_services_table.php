@@ -18,7 +18,7 @@ return new class extends Migration
             $table->string('status'); // RUNNING, STOPPED, FAILED, UNKNOWN
             $table->timestamp('last_checked_at')->nullable();
             $table->timestamps();
-            
+
             // Ensures we only have one record per service per agent, we can just update it
             $table->unique(['agent_id', 'service_name']);
         });

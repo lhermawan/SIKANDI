@@ -2,25 +2,25 @@
 
 namespace App\Console\Commands;
 
-use App\Models\SecurityIncident;
 use App\Models\SecurityEvent;
+use App\Models\SecurityIncident;
 use App\Models\SecurityRule;
-use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 
 class ReconcileSecurityIncidents extends Command
 {
     protected $signature = 'security:reconcile-incidents {--dry-run : Only show what would be done without modifying data}';
+
     protected $description = 'Merge duplicate security incidents and recalculate metrics (first_seen, last_seen, risk_score)';
 
     public function handle()
     {
-        $this->info("Starting Security Incident Reconciliation...");
+        $this->info('Starting Security Incident Reconciliation...');
         $isDryRun = $this->option('dry-run');
 
         if ($isDryRun) {
-            $this->warn("DRY RUN MODE ENABLED. No data will be permanently modified.");
+            $this->warn('DRY RUN MODE ENABLED. No data will be permanently modified.');
         }
 
         // Group incidents that might be duplicates
@@ -31,7 +31,8 @@ class ReconcileSecurityIncidents extends Command
             ->get();
 
         if ($groups->isEmpty()) {
-            $this->info("No duplicate incidents found.");
+            $this->info('No duplicate incidents found.');
+
             return;
         }
 
@@ -48,7 +49,7 @@ class ReconcileSecurityIncidents extends Command
 
             $this->info("Found {$duplicates->count()} duplicate(s) for Campaign [{$group->detection_rule}] from IP [{$group->source_ip}]");
 
-            if (!$isDryRun) {
+            if (! $isDryRun) {
                 DB::transaction(function () use ($primary, $duplicates) {
                     $duplicateIds = $duplicates->pluck('id');
 
@@ -63,17 +64,19 @@ class ReconcileSecurityIncidents extends Command
 
                     $firstSeen = $rawEvents->min('timestamp') ?? $primary->first_seen_at;
                     $lastSeen = $rawEvents->max('timestamp') ?? $primary->last_seen_at;
-                    
+
                     // 3. Risk Calculation
                     $rule = SecurityRule::where('name', $primary->detection_rule)->first();
                     $baseRisk = $rule ? $rule->risk_score : 50;
-                    
-                    $hasSuccess = $rawEvents->clone()->where(function($q){
+
+                    $hasSuccess = $rawEvents->clone()->where(function ($q) {
                         $q->whereIn('event_type', ['login', 'authentication'])
-                          ->whereIn('action', ['success', 'accepted', 'login_success']);
+                            ->whereIn('action', ['success', 'accepted', 'login_success']);
                     })->exists();
 
-                    if ($hasSuccess) $baseRisk += 30;
+                    if ($hasSuccess) {
+                        $baseRisk += 30;
+                    }
                     $finalRisk = min(100, $baseRisk);
 
                     // 4. Update Primary
@@ -81,17 +84,17 @@ class ReconcileSecurityIncidents extends Command
                         'first_seen_at' => $firstSeen,
                         'last_seen_at' => $lastSeen,
                         'risk_score' => $finalRisk,
-                        'description' => $primary->description . "\n\n[System Note: Reconciled and merged with " . $duplicates->count() . " duplicate incidents on " . now() . "]"
+                        'description' => $primary->description."\n\n[System Note: Reconciled and merged with ".$duplicates->count().' duplicate incidents on '.now().']',
                     ]);
 
                     // 5. Delete Duplicates
                     SecurityIncident::whereIn('id', $duplicateIds)->delete();
                 });
-                
+
                 $this->info("-> Merged into Incident ID {$primary->id} (First Seen: {$primary->first_seen_at}, Risk: {$primary->risk_score})");
             }
         }
 
-        $this->info("Reconciliation complete.");
+        $this->info('Reconciliation complete.');
     }
 }

@@ -27,12 +27,12 @@ class CheckAgentStatus extends Command
     public function handle()
     {
         $now = now();
-        
+
         // Offline: > 5 minutes
         Agent::whereIn('status', ['online', 'warning'])
             ->where('last_seen_at', '<=', $now->copy()->subMinutes(5))
             ->update(['status' => 'offline']);
-            
+
         // Warning: > 2 minutes but <= 5 minutes
         Agent::where('status', 'online')
             ->where('last_seen_at', '<=', $now->copy()->subMinutes(2))

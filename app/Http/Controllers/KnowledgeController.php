@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Document;
 use App\Models\KnowledgeArticle;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
 class KnowledgeController extends Controller
@@ -76,6 +77,7 @@ class KnowledgeController extends Controller
     public function destroy(KnowledgeArticle $knowledge)
     {
         $knowledge->delete();
+
         return redirect()->route('knowledge.index')->with('success', 'Artikel berhasil dihapus.');
     }
 
@@ -108,15 +110,16 @@ class KnowledgeController extends Controller
     public function downloadDocument(Document $document)
     {
         // Add authorization check if confidential later
-        return response()->download(storage_path('app/public/' . $document->file_path), $document->title . '.' . pathinfo($document->file_path, PATHINFO_EXTENSION));
+        return response()->download(storage_path('app/public/'.$document->file_path), $document->title.'.'.pathinfo($document->file_path, PATHINFO_EXTENSION));
     }
 
     public function destroyDocument(Document $document)
     {
-        if (\Illuminate\Support\Facades\Storage::disk('public')->exists($document->file_path)) {
-            \Illuminate\Support\Facades\Storage::disk('public')->delete($document->file_path);
+        if (Storage::disk('public')->exists($document->file_path)) {
+            Storage::disk('public')->delete($document->file_path);
         }
         $document->delete();
+
         return back()->with('success', 'Dokumen berhasil dihapus.');
     }
 }

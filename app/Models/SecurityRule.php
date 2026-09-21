@@ -8,7 +8,7 @@ class SecurityRule extends Model
 {
     protected $fillable = [
         'name', 'enabled', 'threshold', 'time_window_seconds',
-        'severity', 'risk_score', 'auto_incident'
+        'severity', 'risk_score', 'auto_incident',
     ];
 
     protected $casts = [

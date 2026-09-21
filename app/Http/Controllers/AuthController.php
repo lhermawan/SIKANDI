@@ -7,6 +7,8 @@ use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
@@ -40,8 +42,8 @@ class AuthController extends Controller
     public function login(Request $request): RedirectResponse
     {
         $rules = [
-            'login'                => ['required', 'string'],
-            'password'             => ['required', 'string'],
+            'login' => ['required', 'string'],
+            'password' => ['required', 'string'],
             'g-recaptcha-response' => ['required', 'string'],
         ];
 
@@ -50,18 +52,19 @@ class AuthController extends Controller
         ]);
 
         // --- 1. RATE LIMITING (by IP) ---
-        $throttleKey = 'login.' . Str::lower($request->input('login')) . '|' . $request->ip();
+        $throttleKey = 'login.'.Str::lower($request->input('login')).'|'.$request->ip();
 
         if (RateLimiter::tooManyAttempts($throttleKey, self::MAX_ATTEMPTS)) {
             $seconds = RateLimiter::availableIn($throttleKey);
+
             return back()->withErrors([
                 'login' => "Terlalu banyak percobaan login dari IP ini. Silakan coba lagi dalam {$seconds} detik.",
             ])->onlyInput('login');
         }
 
         // --- VALIDASI RECAPTCHA V3 ---
-        $recaptchaResponse = \Illuminate\Support\Facades\Http::asForm()->post('https://www.google.com/recaptcha/api/siteverify', [
-            'secret'   => config('services.recaptcha.secret_key'),
+        $recaptchaResponse = Http::asForm()->post('https://www.google.com/recaptcha/api/siteverify', [
+            'secret' => config('services.recaptcha.secret_key'),
             'response' => $request->input('g-recaptcha-response'),
             'remoteip' => $request->ip(),
         ]);
@@ -69,17 +72,18 @@ class AuthController extends Controller
         $recaptchaData = $recaptchaResponse->json();
         $recaptchaScore = $recaptchaData['score'] ?? 0;
 
-        if (!$recaptchaResponse->successful() || !($recaptchaData['success'] ?? false) || $recaptchaScore < 0.5) {
+        if (! $recaptchaResponse->successful() || ! ($recaptchaData['success'] ?? false) || $recaptchaScore < 0.5) {
             // Log percobaan dengan skor rendah (kemungkinan bot)
-            \Illuminate\Support\Facades\Log::warning('reCAPTCHA failed on login', [
-                'ip'      => $request->ip(),
-                'login'   => $request->input('login'),
-                'score'   => $recaptchaScore,
-                'errors'  => $recaptchaData['error-codes'] ?? [],
+            Log::warning('reCAPTCHA failed on login', [
+                'ip' => $request->ip(),
+                'login' => $request->input('login'),
+                'score' => $recaptchaScore,
+                'errors' => $recaptchaData['error-codes'] ?? [],
             ]);
             RateLimiter::hit($throttleKey, 60);
+
             return back()->withErrors([
-                'login' => 'Verifikasi keamanan reCAPTCHA gagal (skor: ' . round($recaptchaScore, 2) . '). Silakan coba lagi.',
+                'login' => 'Verifikasi keamanan reCAPTCHA gagal (skor: '.round($recaptchaScore, 2).'). Silakan coba lagi.',
             ])->onlyInput('login');
         }
 
@@ -94,16 +98,16 @@ class AuthController extends Controller
 
             // Log percobaan saat terkunci
             AuditLog::create([
-                'user_id'        => $user->id,
-                'user_name'      => $user->name,
-                'action'         => 'login_blocked',
-                'module'         => 'Authentication',
+                'user_id' => $user->id,
+                'user_name' => $user->name,
+                'action' => 'login_blocked',
+                'module' => 'Authentication',
                 'auditable_type' => get_class($user),
-                'auditable_id'   => $user->id,
-                'record_name'    => $user->email,
-                'ip_address'     => $request->ip(),
-                'user_agent'     => $request->userAgent(),
-                'new_values'     => ['reason' => 'Account locked'],
+                'auditable_id' => $user->id,
+                'record_name' => $user->email,
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'new_values' => ['reason' => 'Account locked'],
             ]);
 
             return back()->withErrors([
@@ -120,24 +124,24 @@ class AuthController extends Controller
 
             $user = Auth::user();
             $user->update([
-                'last_login_at'      => now(),
+                'last_login_at' => now(),
                 'failed_login_count' => 0,
-                'locked_until'       => null,
+                'locked_until' => null,
             ]);
 
             AuditLog::create([
-                'user_id'        => $user->id,
-                'user_name'      => $user->name,
-                'action'         => 'login',
-                'module'         => 'Authentication',
+                'user_id' => $user->id,
+                'user_name' => $user->name,
+                'action' => 'login',
+                'module' => 'Authentication',
                 'auditable_type' => get_class($user),
-                'auditable_id'   => $user->id,
-                'record_name'    => $user->email,
-                'ip_address'     => $request->ip(),
-                'user_agent'     => $request->userAgent(),
+                'auditable_id' => $user->id,
+                'record_name' => $user->email,
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
             ]);
 
-            return redirect()->intended(route('dashboard'))->with('success', 'Selamat datang kembali, ' . $user->name);
+            return redirect()->intended(route('dashboard'))->with('success', 'Selamat datang kembali, '.$user->name);
         }
 
         // --- 6. LOGIN GAGAL: INCREMENT COUNTER & LOCKOUT ---
@@ -156,30 +160,31 @@ class AuthController extends Controller
 
             $user->update([
                 'failed_login_count' => $newCount,
-                'locked_until'       => $lockedUntil,
+                'locked_until' => $lockedUntil,
             ]);
 
             // Log percobaan gagal
             AuditLog::create([
-                'user_id'        => $user->id,
-                'user_name'      => $user->name,
-                'action'         => 'login_failed',
-                'module'         => 'Authentication',
+                'user_id' => $user->id,
+                'user_name' => $user->name,
+                'action' => 'login_failed',
+                'module' => 'Authentication',
                 'auditable_type' => get_class($user),
-                'auditable_id'   => $user->id,
-                'record_name'    => $user->email,
-                'ip_address'     => $request->ip(),
-                'user_agent'     => $request->userAgent(),
-                'new_values'     => ['attempt' => $newCount, 'locked' => $shouldLock],
+                'auditable_id' => $user->id,
+                'record_name' => $user->email,
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'new_values' => ['attempt' => $newCount, 'locked' => $shouldLock],
             ]);
 
             if ($shouldLock) {
                 return back()->withErrors([
-                    'login' => '⛔ Akun Anda telah dikunci selama ' . self::LOCKOUT_MINUTES . ' menit karena terlalu banyak percobaan login gagal.',
+                    'login' => '⛔ Akun Anda telah dikunci selama '.self::LOCKOUT_MINUTES.' menit karena terlalu banyak percobaan login gagal.',
                 ])->onlyInput('login');
             }
 
             $remaining = self::MAX_ATTEMPTS - $newCount;
+
             return back()->withErrors([
                 'login' => "Kombinasi username/email dan password salah. Sisa percobaan: {$remaining} kali sebelum akun dikunci.",
             ])->onlyInput('login');
@@ -196,15 +201,15 @@ class AuthController extends Controller
 
         if ($user) {
             AuditLog::create([
-                'user_id'        => $user->id,
-                'user_name'      => $user->name,
-                'action'         => 'logout',
-                'module'         => 'Authentication',
+                'user_id' => $user->id,
+                'user_name' => $user->name,
+                'action' => 'logout',
+                'module' => 'Authentication',
                 'auditable_type' => get_class($user),
-                'auditable_id'   => $user->id,
-                'record_name'    => $user->email,
-                'ip_address'     => $request->ip(),
-                'user_agent'     => $request->userAgent(),
+                'auditable_id' => $user->id,
+                'record_name' => $user->email,
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
             ]);
         }
 

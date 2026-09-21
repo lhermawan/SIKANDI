@@ -2,10 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ConfigurationItem;
 use App\Models\Incident;
+use App\Models\Organization;
 use App\Models\Website;
 use App\Models\WebsiteCheckLog;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\View\View;
 
@@ -25,13 +28,13 @@ class MonitoringController extends Controller
             'avg_response_time' => round(Website::where('current_status', 'up')->avg('response_time_ms') ?? 0),
         ];
 
-        $organizations = \App\Models\Organization::orderBy('name')->get();
-        $configurationItems = \App\Models\ConfigurationItem::orderBy('name')->get();
+        $organizations = Organization::orderBy('name')->get();
+        $configurationItems = ConfigurationItem::orderBy('name')->get();
 
         return view('monitoring.websites', compact('websites', 'stats', 'organizations', 'configurationItems'));
     }
 
-    public function storeWebsite(\Illuminate\Http\Request $request): RedirectResponse
+    public function storeWebsite(Request $request): RedirectResponse
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',

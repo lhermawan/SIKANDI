@@ -13,8 +13,8 @@ class AgentFactory extends Factory
     public function definition(): array
     {
         return [
-            'agent_id' => 'AGT-' . strtoupper(Str::random(8)),
-            'hostname' => $this->faker->domainWord() . '-server',
+            'agent_id' => 'AGT-'.strtoupper(Str::random(8)),
+            'hostname' => $this->faker->domainWord().'-server',
             'ip_address' => $this->faker->ipv4(),
             'os' => 'Linux',
             'os_version' => 'Ubuntu 22.04',

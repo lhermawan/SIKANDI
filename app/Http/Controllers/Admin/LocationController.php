@@ -14,10 +14,10 @@ class LocationController extends Controller
 
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('code', 'like', "%{$search}%")
-                  ->orWhere('building', 'like', "%{$search}%");
+                    ->orWhere('code', 'like', "%{$search}%")
+                    ->orWhere('building', 'like', "%{$search}%");
             });
         }
 
@@ -48,7 +48,7 @@ class LocationController extends Controller
 
         $data = $request->all();
         $data['is_active'] = $request->boolean('is_active', true);
-        
+
         if ($data['type'] === 'location') {
             $data['parent_id'] = null; // Ensure locations don't have parents from UI for now
         }
@@ -63,7 +63,7 @@ class LocationController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'type' => 'required|in:location,room',
-            'code' => 'nullable|string|unique:locations,code,' . $location->id,
+            'code' => 'nullable|string|unique:locations,code,'.$location->id,
             'parent_id' => 'nullable|exists:locations,id',
             'building' => 'nullable|string',
             'floor' => 'nullable|string',
@@ -72,7 +72,7 @@ class LocationController extends Controller
 
         $data = $request->all();
         $data['is_active'] = $request->boolean('is_active', true);
-        
+
         if ($data['type'] === 'location') {
             $data['parent_id'] = null;
         }
@@ -84,10 +84,10 @@ class LocationController extends Controller
 
     public function toggle(Location $location)
     {
-        $location->update(['is_active' => !$location->is_active]);
-        
+        $location->update(['is_active' => ! $location->is_active]);
+
         // Optionally deactivate children if parent is deactivated
-        if (!$location->is_active && $location->type === 'location') {
+        if (! $location->is_active && $location->type === 'location') {
             $location->children()->update(['is_active' => false]);
         }
 

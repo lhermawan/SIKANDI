@@ -29,7 +29,7 @@ return new class extends Migration
             $table->dateTime('first_seen_at')->nullable();
             $table->dateTime('last_seen_at')->nullable();
             $table->foreignId('agent_id')->nullable()->constrained('agents')->nullOnDelete();
-            
+
             // Adjust enums if necessary, but we'll use workflow_status for status mapping.
             // Let's add a general string status for EDR to not clash with strict CSIRT enums if needed
             $table->string('edr_status')->default('OPEN')->index();
@@ -53,7 +53,7 @@ return new class extends Migration
             $table->foreignId('incident_id')->nullable()->constrained('security_incidents')->nullOnDelete();
             $table->timestamps();
         });
-        
+
         // Add default rules
         DB::table('security_rules')->insert([
             ['name' => 'BRUTE_FORCE', 'enabled' => true, 'threshold' => 10, 'time_window_seconds' => 300, 'severity' => 'high', 'risk_score' => 50, 'auto_incident' => true, 'created_at' => now(), 'updated_at' => now()],
@@ -66,7 +66,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::dropIfExists('security_events');
-        
+
         Schema::table('security_incidents', function (Blueprint $table) {
             $table->dropForeign(['agent_id']);
             $table->dropColumn(['risk_score', 'source_ip', 'username', 'detection_rule', 'first_seen_at', 'last_seen_at', 'agent_id', 'edr_status']);

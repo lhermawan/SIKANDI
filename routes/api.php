@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V1\AgentApiController;
 use App\Http\Controllers\Api\V1\ApiController;
 use Illuminate\Support\Facades\Route;
 
@@ -43,17 +44,17 @@ Route::prefix('v1')->group(function () {
 
         // Risk Register
         Route::get('/risks', [ApiController::class, 'risks']);
-        
+
         // Agent Communication
-        Route::post('/agent/heartbeat', [\App\Http\Controllers\Api\V1\AgentApiController::class, 'heartbeat']);
-        Route::post('/agent/metrics', [\App\Http\Controllers\Api\V1\AgentApiController::class, 'metrics']);
-        Route::post('/agent/services', [\App\Http\Controllers\Api\V1\AgentApiController::class, 'services']);
-        Route::post('/agent/events', [\App\Http\Controllers\Api\V1\AgentApiController::class, 'events']);
-        Route::get('/agent/blacklist', [\App\Http\Controllers\Api\V1\AgentApiController::class, 'blacklist']);
-        Route::get('/agent/commands', [\App\Http\Controllers\Api\V1\AgentApiController::class, 'fetchCommands']);
-        Route::post('/agent/commands/{id}/result', [\App\Http\Controllers\Api\V1\AgentApiController::class, 'submitCommandResult']);
+        Route::post('/agent/heartbeat', [AgentApiController::class, 'heartbeat']);
+        Route::post('/agent/metrics', [AgentApiController::class, 'metrics']);
+        Route::post('/agent/services', [AgentApiController::class, 'services']);
+        Route::post('/agent/events', [AgentApiController::class, 'events']);
+        Route::get('/agent/blacklist', [AgentApiController::class, 'blacklist']);
+        Route::get('/agent/commands', [AgentApiController::class, 'fetchCommands']);
+        Route::post('/agent/commands/{id}/result', [AgentApiController::class, 'submitCommandResult']);
     });
 
     // Agent Registration (using static or UI-generated token, checked inside controller)
-    Route::post('/agent/register', [\App\Http\Controllers\Api\V1\AgentApiController::class, 'register']);
+    Route::post('/agent/register', [AgentApiController::class, 'register']);
 });

@@ -18,7 +18,7 @@ class ResponseExecutorService
 
         try {
             // Pilih driver eksekusi berdasarkan konfigurasi (Mikrotik vs Agent iptables)
-            $driver = config('sikandi.response_driver', 'log'); 
+            $driver = config('sikandi.response_driver', 'log');
 
             $success = false;
             $resultMessage = '';
@@ -42,12 +42,12 @@ class ResponseExecutorService
 
                 case 'isolate_server':
                     $success = true;
-                    $resultMessage = "Simulasi Isolasi Jaringan Server berhasil dieksekusi.";
+                    $resultMessage = 'Simulasi Isolasi Jaringan Server berhasil dieksekusi.';
                     break;
 
                 default:
                     $success = true;
-                    $resultMessage = "Aksi default dieksekusi.";
+                    $resultMessage = 'Aksi default dieksekusi.';
             }
 
             // Update status
@@ -60,10 +60,11 @@ class ResponseExecutorService
             return $success;
 
         } catch (\Exception $e) {
-            Log::error("Response Executor Failed: " . $e->getMessage());
+            Log::error('Response Executor Failed: '.$e->getMessage());
             $response->status = 'failed';
-            $response->result = 'Error: ' . $e->getMessage();
+            $response->result = 'Error: '.$e->getMessage();
             $response->save();
+
             return false;
         }
     }
@@ -72,6 +73,7 @@ class ResponseExecutorService
     {
         // Mencari IP address dari deskripsi menggunakan regex
         preg_match('/\b\d{1,3}(\.\d{1,3}){3}\b/', $description ?? '', $matches);
+
         return $matches[0] ?? '0.0.0.0';
     }
 
@@ -79,7 +81,7 @@ class ResponseExecutorService
     {
         // TODO: Implementasi Guzzle/RouterOS API client
         // Untuk sekarang kita return true (simulasi berhasil jika API tersambung)
-        return true; 
+        return true;
     }
 
     private function executeAgentBlock(string $ip): bool

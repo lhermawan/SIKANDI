@@ -4,8 +4,8 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 
 class RoleController extends Controller
 {
@@ -15,6 +15,7 @@ class RoleController extends Controller
     public function index()
     {
         $roles = Role::with('permissions')->orderBy('id')->get();
+
         return view('admin.roles.index', compact('roles'));
     }
 
@@ -26,6 +27,7 @@ class RoleController extends Controller
         // Group permissions by their first prefix (e.g. view-dashboard -> view, view-cmdb -> cmdb, etc. Or just by a custom map if possible)
         // We will just send them all and group in view
         $permissions = Permission::orderBy('name')->get();
+
         return view('admin.roles.create', compact('permissions'));
     }
 
@@ -69,6 +71,7 @@ class RoleController extends Controller
         }
 
         $permissions = Permission::orderBy('name')->get();
+
         return view('admin.roles.edit', compact('role', 'permissions'));
     }
 
@@ -82,7 +85,7 @@ class RoleController extends Controller
         }
 
         $request->validate([
-            'name' => 'required|string|max:255|unique:roles,name,' . $role->id,
+            'name' => 'required|string|max:255|unique:roles,name,'.$role->id,
             'permissions' => 'nullable|array',
             'permissions.*' => 'exists:permissions,id',
         ]);

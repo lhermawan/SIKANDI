@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\Agent;
-use App\Models\AgentCommand;
 use Illuminate\Http\Request;
 
 class DiskManagerController extends Controller
@@ -25,17 +24,17 @@ class DiskManagerController extends Controller
     public function requestScan(Request $request, Agent $agent)
     {
         $paths = $request->input('paths', [
-            '/var/cache', 
+            '/var/cache',
             '/tmp',
             '/var/www',
             '/root/.npm',
-            '/root/.cache'
+            '/root/.cache',
         ]);
 
         $agent->commands()->create([
             'action' => 'scan_disk',
             'paths' => $paths,
-            'status' => 'pending'
+            'status' => 'pending',
         ]);
 
         return redirect()->route('agents.disk.show', $agent)->with('success', 'Perintah pindai disk telah dikirim ke agen.');
@@ -45,13 +44,45 @@ class DiskManagerController extends Controller
     {
         $request->validate([
             'paths' => 'required|array',
-            'paths.*' => 'string'
+            'paths.*' => 'string',
         ]);
+
+        // Daftar direktori yang diizinkan (allowlist)
+        $allowedPrefixes = [
+            '/var/cache/',
+            '/tmp/',
+            '/root/.npm/',
+            '/root/.cache/',
+        ];
+
+        // Validasi setiap path untuk memastikan berada di dalam direktori yang diizinkan
+        $validPaths = [];
+        foreach ($request->paths as $path) {
+            // Cegah directory traversal (contoh: /var/cache/../../etc/passwd)
+            if (str_contains($path, '..')) {
+                return redirect()->route('agents.disk.show', $agent)
+                    ->with('error', "Path mengandung pola directory traversal yang dilarang: {$path}");
+            }
+
+            $isAllowed = false;
+            foreach ($allowedPrefixes as $prefix) {
+                if (str_starts_with($path, $prefix)) {
+                    $isAllowed = true;
+                    break;
+                }
+            }
+
+            if (! $isAllowed) {
+                return redirect()->route('agents.disk.show', $agent)
+                    ->with('error', "Path tidak diizinkan untuk dihapus: {$path}");
+            }
+            $validPaths[] = $path;
+        }
 
         $agent->commands()->create([
             'action' => 'delete_files',
-            'paths' => $request->paths,
-            'status' => 'pending'
+            'paths' => $validPaths,
+            'status' => 'pending',
         ]);
 
         return redirect()->route('agents.disk.show', $agent)->with('success', 'Perintah penghapusan telah dikirim ke agen.');

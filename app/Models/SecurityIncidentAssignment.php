@@ -7,8 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 class SecurityIncidentAssignment extends Model
 {
     protected $fillable = [
-        'incident_id', 'user_id', 'assigned_by', 
-        'assigned_at', 'unassigned_at'
+        'incident_id', 'user_id', 'assigned_by',
+        'assigned_at', 'unassigned_at',
     ];
 
     protected function casts(): array

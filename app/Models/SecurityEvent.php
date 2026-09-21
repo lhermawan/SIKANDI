@@ -9,7 +9,7 @@ class SecurityEvent extends Model
     protected $fillable = [
         'event_id', 'agent_id', 'timestamp', 'event_type', 'action',
         'hostname', 'username', 'source_ip', 'process', 'severity',
-        'risk_score', 'reason', 'metadata', 'incident_id'
+        'risk_score', 'reason', 'metadata', 'incident_id',
     ];
 
     protected $casts = [

@@ -114,6 +114,7 @@ class IncidentController extends Controller
     public function destroy(Incident $incident)
     {
         $incident->delete();
+
         return back()->with('success', 'Insiden Service Desk berhasil dihapus.');
     }
 }

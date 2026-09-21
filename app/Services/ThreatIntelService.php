@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Log;
 class ThreatIntelService
 {
     protected string $apiKey;
+
     protected string $baseUrl = 'https://api.abuseipdb.com/api/v2';
 
     public function __construct()
@@ -23,6 +24,7 @@ class ThreatIntelService
     {
         if (empty($this->apiKey)) {
             Log::warning("AbuseIPDB API Key is missing. Skipping check for IP: {$ip}");
+
             return null;
         }
 
@@ -34,7 +36,7 @@ class ThreatIntelService
         $reputation = IpReputation::firstWhere('ip_address', $ip);
 
         // Jika tidak di-force dan kita baru mengeceknya dalam 24 jam terakhir, gunakan cache
-        if (!$force && $reputation && $reputation->last_checked_at && $reputation->last_checked_at->diffInHours(now()) < 24) {
+        if (! $force && $reputation && $reputation->last_checked_at && $reputation->last_checked_at->diffInHours(now()) < 24) {
             return $reputation;
         }
 
@@ -44,13 +46,13 @@ class ThreatIntelService
                 'Accept' => 'application/json',
             ])->get("{$this->baseUrl}/check", [
                 'ipAddress' => $ip,
-                'maxAgeInDays' => 90
+                'maxAgeInDays' => 90,
             ]);
 
             if ($response->successful()) {
                 $data = $response->json('data');
 
-                if (!$reputation) {
+                if (! $reputation) {
                     $reputation = new IpReputation(['ip_address' => $ip]);
                 }
 
@@ -67,12 +69,13 @@ class ThreatIntelService
                 ]);
 
                 $reputation->save();
+
                 return $reputation;
             } else {
-                Log::error("AbuseIPDB API Error for IP {$ip}: " . $response->body());
+                Log::error("AbuseIPDB API Error for IP {$ip}: ".$response->body());
             }
         } catch (\Exception $e) {
-            Log::error("ThreatIntelService Exception for IP {$ip}: " . $e->getMessage());
+            Log::error("ThreatIntelService Exception for IP {$ip}: ".$e->getMessage());
         }
 
         return $reputation;

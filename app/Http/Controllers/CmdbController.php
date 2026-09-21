@@ -247,7 +247,7 @@ class CmdbController extends Controller
      */
     public function graphData(Request $request): JsonResponse
     {
-        $query = ConfigurationItem::with(['ciType', 'organization', 'securityIncidents' => function($q) {
+        $query = ConfigurationItem::with(['ciType', 'organization', 'securityIncidents' => function ($q) {
             $q->whereNotIn('workflow_status', ['closed', 'resolved', 'false_positive', 'duplicate']);
         }, 'agent']);
 
@@ -281,10 +281,10 @@ class CmdbController extends Controller
             $isSourceCompromised = in_array($rel->source_ci_id, $compromisedIds);
             $isTargetCompromised = in_array($rel->target_ci_id, $compromisedIds);
 
-            if ($isSourceCompromised && !$isTargetCompromised) {
+            if ($isSourceCompromised && ! $isTargetCompromised) {
                 $impactedBy[$rel->target_ci_id][] = $compromisedNames[$rel->source_ci_id];
             }
-            if ($isTargetCompromised && !$isSourceCompromised) {
+            if ($isTargetCompromised && ! $isSourceCompromised) {
                 $impactedBy[$rel->source_ci_id][] = $compromisedNames[$rel->target_ci_id];
             }
         }
@@ -294,7 +294,7 @@ class CmdbController extends Controller
             $hasIncidents = in_array($ci->id, $compromisedIds);
             $isImpacted = isset($impactedBy[$ci->id]);
             $agentStatus = $ci->agent ? $ci->agent->status : 'unmanaged';
-            
+
             $pulse = false;
             $impactSources = [];
 
@@ -328,8 +328,11 @@ class CmdbController extends Controller
             }
 
             $label = "{$ci->ci_code}\n{$ci->name}";
-            if ($hasIncidents) $label .= "\n(⚠️ COMPROMISED)";
-            elseif ($isImpacted) $label .= "\n(⚠️ AT RISK)";
+            if ($hasIncidents) {
+                $label .= "\n(⚠️ COMPROMISED)";
+            } elseif ($isImpacted) {
+                $label .= "\n(⚠️ AT RISK)";
+            }
 
             $nodes[] = [
                 'id' => $ci->id,
@@ -378,7 +381,7 @@ class CmdbController extends Controller
         foreach ($relationships as $rel) {
             $sourceCi = $cis->firstWhere('id', $rel->source_ci_id);
             $targetCi = $cis->firstWhere('id', $rel->target_ci_id);
-            
+
             $isSourceComp = in_array($rel->source_ci_id, $compromisedIds);
             $isTargetComp = in_array($rel->target_ci_id, $compromisedIds);
 
@@ -402,7 +405,7 @@ class CmdbController extends Controller
                 $edgeColor = '#64748b'; // Idle
                 $fontColor = '#94a3b8';
             }
-            
+
             $edges[] = [
                 'from' => $rel->source_ci_id,
                 'to' => $rel->target_ci_id,

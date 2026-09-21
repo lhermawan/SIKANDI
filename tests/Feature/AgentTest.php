@@ -3,11 +3,12 @@
 namespace Tests\Feature;
 
 use App\Models\Agent;
+use App\Models\AgentEvent;
+use App\Models\CiType;
 use App\Models\ConfigurationItem;
+use App\Models\Organization;
 use App\Models\SystemSetting;
-use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Foundation\Testing\WithFaker;
 use Tests\TestCase;
 
 class AgentTest extends TestCase
@@ -20,7 +21,7 @@ class AgentTest extends TestCase
         // Set the global registration token
         SystemSetting::create([
             'key' => 'agent_registration_token',
-            'value' => 'test-secret-token'
+            'value' => 'test-secret-token',
         ]);
     }
 
@@ -31,15 +32,15 @@ class AgentTest extends TestCase
             'hostname' => 'web-server-01',
             'os' => 'Ubuntu',
             'os_version' => '22.04',
-            'agent_version' => '1.0.0'
+            'agent_version' => '1.0.0',
         ]);
 
         $response->assertStatus(201)
-                 ->assertJsonStructure(['message', 'agent_id', 'status']);
-        
+            ->assertJsonStructure(['message', 'agent_id', 'status']);
+
         $this->assertDatabaseHas('agents', [
             'hostname' => 'web-server-01',
-            'status' => 'pending'
+            'status' => 'pending',
         ]);
     }
 
@@ -47,7 +48,7 @@ class AgentTest extends TestCase
     {
         $response = $this->postJson('/api/v1/agent/register', [
             'registration_token' => 'wrong-token',
-            'hostname' => 'web-server-01'
+            'hostname' => 'web-server-01',
         ]);
 
         $response->assertStatus(401);
@@ -59,11 +60,11 @@ class AgentTest extends TestCase
         $token = $agent->createToken('test-token')->plainTextToken;
 
         $response = $this->withHeaders([
-            'Authorization' => 'Bearer ' . $token,
+            'Authorization' => 'Bearer '.$token,
         ])->postJson('/api/v1/agent/heartbeat');
 
         $response->assertStatus(200);
-        
+
         // Assert last seen updated
         $this->assertTrue($agent->fresh()->last_seen_at->isToday());
     }
@@ -74,52 +75,52 @@ class AgentTest extends TestCase
         $token = $agent->createToken('test-token')->plainTextToken;
 
         $response = $this->withHeaders([
-            'Authorization' => 'Bearer ' . $token,
+            'Authorization' => 'Bearer '.$token,
         ])->postJson('/api/v1/agent/metrics', [
             'cpu_usage' => 45.5,
-            'memory_usage' => 60.0
+            'memory_usage' => 60.0,
         ]);
 
         $response->assertStatus(200);
         $this->assertDatabaseHas('agent_metrics', [
             'agent_id' => $agent->id,
-            'cpu_usage' => 45.5
+            'cpu_usage' => 45.5,
         ]);
     }
 
     public function test_agent_can_trigger_incident_when_service_down()
     {
         // Require a CI linked
-        $ciType = \App\Models\CiType::create(['name' => 'Server', 'code' => 'SRV']);
-        $org = \App\Models\Organization::create(['name' => 'Test Org', 'code' => 'ORG1']);
+        $ciType = CiType::create(['name' => 'Server', 'code' => 'SRV']);
+        $org = Organization::create(['name' => 'Test Org', 'code' => 'ORG1']);
         $ci = ConfigurationItem::create(['name' => 'Web Server CI', 'ci_type_id' => $ciType->id, 'organization_id' => $org->id]);
         $agent = Agent::factory()->create(['status' => 'online', 'ci_id' => $ci->id]);
         $token = $agent->createToken('test-token')->plainTextToken;
 
         $response = $this->withHeaders([
-            'Authorization' => 'Bearer ' . $token,
+            'Authorization' => 'Bearer '.$token,
         ])->postJson('/api/v1/agent/events', [
             'type' => 'service_down',
             'severity' => 'high',
             'message' => 'MySQL stopped',
-            'payload' => ['service' => 'mysql']
+            'payload' => ['service' => 'mysql'],
         ]);
 
         $response->assertStatus(200);
-        
+
         // Verify incident created
         $this->assertDatabaseHas('incidents', [
             'ci_id' => $ci->id,
-            'status' => 'open'
+            'status' => 'open',
         ]);
-        
+
         // Verify event created and linked
         $this->assertDatabaseHas('agent_events', [
             'agent_id' => $agent->id,
-            'type' => 'service_down'
+            'type' => 'service_down',
         ]);
-        
-        $event = \App\Models\AgentEvent::first();
+
+        $event = AgentEvent::first();
         $this->assertNotNull($event->incident_id);
     }
 }

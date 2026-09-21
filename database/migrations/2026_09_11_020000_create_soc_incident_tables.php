@@ -100,8 +100,8 @@ return new class extends Migration
 
         Schema::table('security_incidents', function (Blueprint $table) {
             $table->dropColumn([
-                'target_type', 'target_value', 'detected_at', 'contained_at', 
-                'resolved_at', 'resolution_type', 'resolution_summary', 'root_cause'
+                'target_type', 'target_value', 'detected_at', 'contained_at',
+                'resolved_at', 'resolution_type', 'resolution_summary', 'root_cause',
             ]);
         });
     }

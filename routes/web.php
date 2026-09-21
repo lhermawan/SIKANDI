@@ -1,19 +1,18 @@
 <?php
 
-use App\Http\Controllers\Admin\AuditLogController;
-use App\Http\Controllers\Admin\OrganizationController;
-use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\AgentController;
 use App\Http\Controllers\AssetController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CmdbController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DiskManagerController;
 use App\Http\Controllers\GlobalSearchController;
-use App\Http\Controllers\IkasandiController;
 use App\Http\Controllers\IncidentController;
-use App\Http\Controllers\KnowledgeController;
 use App\Http\Controllers\MonitoringController;
 use App\Http\Controllers\RiskController;
 use App\Http\Controllers\SecurityIncidentController;
+use App\Http\Controllers\SecurityLogController;
+use App\Http\Controllers\SecurityRuleController;
 use App\Http\Controllers\TicketController;
 use Illuminate\Support\Facades\Route;
 
@@ -75,98 +74,63 @@ Route::middleware('auth')->group(function () {
     Route::post('/monitoring/websites/{website}/check', [MonitoringController::class, 'check'])->name('monitoring.websites.check');
 
     // Incident Management
-    Route::resource('incidents', \App\Http\Controllers\IncidentController::class)->except(['destroy']);
-    Route::delete('incidents/{incident}', [\App\Http\Controllers\IncidentController::class, 'destroy'])->name('incidents.destroy');
+    Route::resource('incidents', IncidentController::class)->except(['destroy']);
+    Route::delete('incidents/{incident}', [IncidentController::class, 'destroy'])->name('incidents.destroy');
     Route::post('/incidents/{incident}/comment', [IncidentController::class, 'addComment'])->name('incidents.comment');
 
-    // Security & CSIRT Incidents
-    Route::prefix('security')->name('security.')->group(function () {
-        Route::get('/logs', [\App\Http\Controllers\SecurityLogController::class, 'index'])->name('logs.index');
-        Route::get('/logs/{event}', [\App\Http\Controllers\SecurityLogController::class, 'show'])->name('logs.show');
+    // Security, CSIRT Incidents, and Agents
+    Route::middleware(['role:Super Admin|Admin Persandian'])->group(function () {
+        Route::prefix('security')->name('security.')->group(function () {
+            Route::get('/logs', [SecurityLogController::class, 'index'])->name('logs.index');
+            Route::get('/logs/{event}', [SecurityLogController::class, 'show'])->name('logs.show');
 
-        // Existing Incident routes
-        Route::get('/incidents', [\App\Http\Controllers\SecurityIncidentController::class, 'index'])->name('incidents.index');
-        Route::get('/incidents/create', [\App\Http\Controllers\SecurityIncidentController::class, 'create'])->name('incidents.create');
-        Route::post('/incidents', [\App\Http\Controllers\SecurityIncidentController::class, 'store'])->name('incidents.store');
-        Route::get('/incidents/{incident}', [\App\Http\Controllers\SecurityIncidentController::class, 'show'])->name('incidents.show');
-        Route::post('/incidents/{incident}/workflow', [\App\Http\Controllers\SecurityIncidentController::class, 'updateWorkflow'])->name('incidents.workflow');
-        Route::post('/incidents/{incident}/tasks', [\App\Http\Controllers\SecurityIncidentController::class, 'storeTask'])->name('incidents.tasks.store');
-        Route::post('/incidents/{incident}/tasks/{task}/toggle', [\App\Http\Controllers\SecurityIncidentController::class, 'toggleTask'])->name('incidents.tasks.toggle');
-        Route::post('/incidents/{incident}/responses', [\App\Http\Controllers\SecurityIncidentController::class, 'storeResponse'])->name('incidents.responses.store');
-        Route::post('/incidents/responses/{response}/execute', [\App\Http\Controllers\SecurityIncidentController::class, 'executeAction'])->name('incidents.responses.execute');
-        Route::post('/incidents/responses/bulk-execute', [\App\Http\Controllers\SecurityIncidentController::class, 'executeBulkAction'])->name('incidents.responses.bulk-execute');
-        Route::post('/incidents/{incident}/evidence', [\App\Http\Controllers\SecurityIncidentController::class, 'storeEvidence'])->name('incidents.evidence.store');
-        Route::post('/incidents/{incident}/resolve', [\App\Http\Controllers\SecurityIncidentController::class, 'resolve'])->name('incidents.resolve');
-        Route::post('/incidents/{incident}/assign', [\App\Http\Controllers\SecurityIncidentController::class, 'assign'])->name('incidents.assign');
-        Route::delete('/incidents/{incident}', [\App\Http\Controllers\SecurityIncidentController::class, 'destroy'])->name('incidents.destroy');
+            // Existing Incident routes
+            Route::get('/incidents', [SecurityIncidentController::class, 'index'])->name('incidents.index');
+            Route::get('/incidents/create', [SecurityIncidentController::class, 'create'])->name('incidents.create');
+            Route::post('/incidents', [SecurityIncidentController::class, 'store'])->name('incidents.store');
+            Route::get('/incidents/{incident}', [SecurityIncidentController::class, 'show'])->name('incidents.show');
+            Route::post('/incidents/{incident}/workflow', [SecurityIncidentController::class, 'updateWorkflow'])->name('incidents.workflow');
+            Route::post('/incidents/{incident}/tasks', [SecurityIncidentController::class, 'storeTask'])->name('incidents.tasks.store');
+            Route::post('/incidents/{incident}/tasks/{task}/toggle', [SecurityIncidentController::class, 'toggleTask'])->name('incidents.tasks.toggle');
+            Route::post('/incidents/{incident}/responses', [SecurityIncidentController::class, 'storeResponse'])->name('incidents.responses.store');
+            Route::post('/incidents/responses/{response}/execute', [SecurityIncidentController::class, 'executeAction'])->name('incidents.responses.execute');
+            Route::post('/incidents/responses/bulk-execute', [SecurityIncidentController::class, 'executeBulkAction'])->name('incidents.responses.bulk-execute');
+            Route::post('/incidents/{incident}/evidence', [SecurityIncidentController::class, 'storeEvidence'])->name('incidents.evidence.store');
+            Route::post('/incidents/{incident}/resolve', [SecurityIncidentController::class, 'resolve'])->name('incidents.resolve');
+            Route::post('/incidents/{incident}/assign', [SecurityIncidentController::class, 'assign'])->name('incidents.assign');
+            Route::delete('/incidents/{incident}', [SecurityIncidentController::class, 'destroy'])->name('incidents.destroy');
 
-        // Threat Actors & HitL Approvals
-        Route::get('/threat-actors', [\App\Http\Controllers\DashboardController::class, 'threatActors'])->name('threat-actors.index');
-        Route::post('/threat-actors/bulk-block', [\App\Http\Controllers\DashboardController::class, 'draftQuickBlockBulk'])->name('threat-actors.bulk-block');
-        Route::post('/threat-actors/whitelist', [\App\Http\Controllers\DashboardController::class, 'whitelistIp'])->name('threat-actors.whitelist');
-        Route::get('/approvals', [\App\Http\Controllers\DashboardController::class, 'socApprovals'])->name('approvals.index');
+            // Threat Actors & HitL Approvals
+            Route::get('/threat-actors', [DashboardController::class, 'threatActors'])->name('threat-actors.index');
+            Route::post('/threat-actors/bulk-block', [DashboardController::class, 'draftQuickBlockBulk'])->name('threat-actors.bulk-block');
+            Route::post('/threat-actors/whitelist', [DashboardController::class, 'whitelistIp'])->name('threat-actors.whitelist');
+            Route::get('/approvals', [DashboardController::class, 'socApprovals'])->name('approvals.index');
 
-        // Rules
-        Route::get('/rules', [\App\Http\Controllers\SecurityRuleController::class, 'index'])->name('rules.index');
-        Route::post('/rules', [\App\Http\Controllers\SecurityRuleController::class, 'store'])->name('rules.store');
-        Route::put('/rules/{rule}', [\App\Http\Controllers\SecurityRuleController::class, 'update'])->name('rules.update');
-        Route::post('/rules/{rule}/toggle', [\App\Http\Controllers\SecurityRuleController::class, 'toggle'])->name('rules.toggle');
+            // Rules
+            Route::get('/rules', [SecurityRuleController::class, 'index'])->name('rules.index');
+            Route::post('/rules', [SecurityRuleController::class, 'store'])->name('rules.store');
+            Route::put('/rules/{rule}', [SecurityRuleController::class, 'update'])->name('rules.update');
+            Route::post('/rules/{rule}/toggle', [SecurityRuleController::class, 'toggle'])->name('rules.toggle');
 
-        Route::get('/risks', [\App\Http\Controllers\RiskController::class, 'index'])->name('risks.index');
-        Route::get('/risks/create', [\App\Http\Controllers\RiskController::class, 'create'])->name('risks.create');
-        Route::post('/risks', [\App\Http\Controllers\RiskController::class, 'store'])->name('risks.store');
-        Route::get('/risks/{risk}', [\App\Http\Controllers\RiskController::class, 'show'])->name('risks.show');
-        Route::post('/risks/{risk}/treatment', [\App\Http\Controllers\RiskController::class, 'storeTreatment'])->name('risks.treatment');
+            Route::get('/risks', [RiskController::class, 'index'])->name('risks.index');
+            Route::get('/risks/create', [RiskController::class, 'create'])->name('risks.create');
+            Route::post('/risks', [RiskController::class, 'store'])->name('risks.store');
+            Route::get('/risks/{risk}', [RiskController::class, 'show'])->name('risks.show');
+            Route::post('/risks/{risk}/treatment', [RiskController::class, 'storeTreatment'])->name('risks.treatment');
+        });
+
+        // Agents
+        Route::get('/agents', [AgentController::class, 'index'])->name('agents.index');
+        Route::get('/agents/{agent}', [AgentController::class, 'show'])->name('agents.show');
+        Route::post('/agents/{agent}/approve', [AgentController::class, 'approve'])->name('agents.approve');
+        Route::post('/agents/{agent}/revoke', [AgentController::class, 'revoke'])->name('agents.revoke');
+        Route::post('/agents/{agent}/link', [AgentController::class, 'link'])->name('agents.link');
+        Route::delete('/agents/{agent}', [AgentController::class, 'destroy'])->name('agents.destroy');
+        Route::post('/agents/registration-token', [AgentController::class, 'generateRegistrationToken'])->name('agents.token');
+
+        // Agent Disk Manager
+        Route::get('/agents/{agent}/disk', [DiskManagerController::class, 'show'])->name('agents.disk.show');
+        Route::post('/agents/{agent}/disk/scan', [DiskManagerController::class, 'requestScan'])->name('agents.disk.scan');
+        Route::post('/agents/{agent}/disk/delete', [DiskManagerController::class, 'requestDelete'])->name('agents.disk.delete');
     });
-
-    // IKASANDI (Indikator Keamanan Informasi OPD)
-    Route::prefix('ikasandi')->name('ikasandi.')->group(function () {
-        Route::get('/dashboard', [IkasandiController::class, 'dashboard'])->name('dashboard');
-        Route::get('/assessment', [IkasandiController::class, 'assessment'])->name('assessment');
-        Route::post('/assessment/{assessment}', [IkasandiController::class, 'submitAssessment'])->name('assessment.submit');
-    });
-
-    // Knowledge Base & Documentation
-    Route::resource('knowledge', KnowledgeController::class);
-    Route::post('/documents', [KnowledgeController::class, 'storeDocument'])->name('documents.store');
-    Route::get('/documents/{document}/download', [KnowledgeController::class, 'downloadDocument'])->name('documents.download');
-    Route::delete('/documents/{document}', [KnowledgeController::class, 'destroyDocument'])->name('documents.destroy');
-
-    // Administration (Roles & OPD)
-    Route::prefix('admin')->name('admin.')->middleware(['role:Super Admin|Admin Persandian'])->group(function () {
-        Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-        Route::post('/soc/quick-block', [DashboardController::class, 'draftQuickBlock'])->name('soc.quick-block');
-        Route::get('/users', [UserController::class, 'index'])->name('users.index');
-        Route::post('/users', [UserController::class, 'store'])->name('users.store');
-        Route::get('/users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
-        Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
-        Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
-        Route::post('/users/{user}/toggle-active', [UserController::class, 'toggleActive'])->name('users.toggle-active');
-        Route::post('/users/{user}/unlock', [UserController::class, 'unlock'])->name('users.unlock');
-        Route::get('/organizations', [OrganizationController::class, 'index'])->name('organizations.index');
-        Route::post('/organizations', [OrganizationController::class, 'store'])->name('organizations.store');
-        Route::put('/organizations/{organization}', [OrganizationController::class, 'update'])->name('organizations.update');
-        Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('audit-logs');
-        
-        // Roles Management
-        Route::resource('roles', \App\Http\Controllers\Admin\RoleController::class)->except(['show']);
-
-        // Master Data: Lokasi & Ruang
-        Route::resource('locations', \App\Http\Controllers\Admin\LocationController::class)->except(['create', 'show', 'edit']);
-        Route::patch('locations/{location}/toggle', [\App\Http\Controllers\Admin\LocationController::class, 'toggle'])->name('locations.toggle');
-    });
-
-    // Agents
-    Route::get('/agents', [\App\Http\Controllers\AgentController::class, 'index'])->name('agents.index');
-    Route::get('/agents/{agent}', [\App\Http\Controllers\AgentController::class, 'show'])->name('agents.show');
-    Route::post('/agents/{agent}/approve', [\App\Http\Controllers\AgentController::class, 'approve'])->name('agents.approve');
-    Route::post('/agents/{agent}/revoke', [\App\Http\Controllers\AgentController::class, 'revoke'])->name('agents.revoke');
-    Route::post('/agents/{agent}/link', [\App\Http\Controllers\AgentController::class, 'link'])->name('agents.link');
-    Route::delete('/agents/{agent}', [\App\Http\Controllers\AgentController::class, 'destroy'])->name('agents.destroy');
-    Route::post('/agents/registration-token', [\App\Http\Controllers\AgentController::class, 'generateRegistrationToken'])->name('agents.token');
-
-    // Agent Disk Manager
-    Route::get('/agents/{agent}/disk', [\App\Http\Controllers\DiskManagerController::class, 'show'])->name('agents.disk.show');
-    Route::post('/agents/{agent}/disk/scan', [\App\Http\Controllers\DiskManagerController::class, 'requestScan'])->name('agents.disk.scan');
-    Route::post('/agents/{agent}/disk/delete', [\App\Http\Controllers\DiskManagerController::class, 'requestDelete'])->name('agents.disk.delete');
 });

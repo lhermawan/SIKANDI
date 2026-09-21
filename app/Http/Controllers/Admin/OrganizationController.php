@@ -53,7 +53,7 @@ class OrganizationController extends Controller
     public function update(Request $request, Organization $organization): RedirectResponse
     {
         $validated = $request->validate([
-            'code' => 'required|string|unique:organizations,code,' . $organization->id,
+            'code' => 'required|string|unique:organizations,code,'.$organization->id,
             'name' => 'required|string|max:255',
             'category' => 'required|in:dinas,badan,kecamatan,bagian_setda,rsud,lainnya',
             'address' => 'nullable|string',

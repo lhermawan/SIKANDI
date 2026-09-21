@@ -4,11 +4,14 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\Agent;
+use App\Models\AgentCommand;
 use App\Models\AgentEvent;
 use App\Models\AgentMetric;
 use App\Models\AgentService;
 use App\Models\Incident;
+use App\Models\SecurityIncidentResponse;
 use App\Models\SystemSetting;
+use App\Services\SecurityDetectionEngine;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
@@ -26,13 +29,13 @@ class AgentApiController extends Controller
         ]);
 
         $validToken = SystemSetting::where('key', 'agent_registration_token')->value('value');
-        
+
         // If not set in DB, allow testing with a default or throw error
-        if (!$validToken || $request->registration_token !== $validToken) {
+        if (! $validToken || $request->registration_token !== $validToken) {
             return response()->json(['message' => 'Invalid registration token'], 401);
         }
 
-        $agentId = 'AGT-' . strtoupper(Str::random(8));
+        $agentId = 'AGT-'.strtoupper(Str::random(8));
 
         $agent = Agent::create([
             'agent_id' => $agentId,
@@ -49,19 +52,19 @@ class AgentApiController extends Controller
         return response()->json([
             'message' => 'Agent registered successfully. Waiting for administrator approval.',
             'agent_id' => $agent->agent_id,
-            'status' => 'pending'
+            'status' => 'pending',
         ], 201);
     }
 
     public function heartbeat(Request $request)
     {
         $agent = $request->user();
-        if (!$agent instanceof Agent) {
+        if (! $agent instanceof Agent) {
             return response()->json(['message' => 'Unauthorized. Token does not belong to an agent.'], 403);
         }
 
         if ($agent->status === 'revoked' || $agent->status === 'disabled') {
-            return response()->json(['message' => 'Agent is ' . $agent->status], 403);
+            return response()->json(['message' => 'Agent is '.$agent->status], 403);
         }
 
         $agent->update([
@@ -75,7 +78,9 @@ class AgentApiController extends Controller
     public function metrics(Request $request)
     {
         $agent = $request->user();
-        if (!$agent instanceof Agent) return response()->json(['message' => 'Unauthorized'], 403);
+        if (! $agent instanceof Agent) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
 
         $request->validate([
             'cpu_usage' => 'nullable|numeric',
@@ -90,7 +95,7 @@ class AgentApiController extends Controller
 
         AgentMetric::create(array_merge($request->only([
             'cpu_usage', 'memory_total', 'memory_used', 'memory_usage',
-            'disk_total', 'disk_used', 'disk_usage', 'uptime_seconds'
+            'disk_total', 'disk_used', 'disk_usage', 'uptime_seconds',
         ]), ['agent_id' => $agent->id]));
 
         return response()->json(['message' => 'Metrics recorded']);
@@ -99,7 +104,9 @@ class AgentApiController extends Controller
     public function services(Request $request)
     {
         $agent = $request->user();
-        if (!$agent instanceof Agent) return response()->json(['message' => 'Unauthorized'], 403);
+        if (! $agent instanceof Agent) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
 
         $request->validate([
             'services' => 'required|array',
@@ -120,7 +127,9 @@ class AgentApiController extends Controller
     public function events(Request $request)
     {
         $agent = $request->user();
-        if (!$agent instanceof Agent) return response()->json(['message' => 'Unauthorized'], 403);
+        if (! $agent instanceof Agent) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
 
         $request->validate([
             'type' => 'required|string',
@@ -131,8 +140,9 @@ class AgentApiController extends Controller
 
         if ($request->type === 'security_event' && isset($request->payload)) {
             // Process via Detection Engine
-            $engine = new \App\Services\SecurityDetectionEngine();
+            $engine = new SecurityDetectionEngine;
             $engine->processEvent($agent, $request->payload);
+
             return response()->json(['message' => 'Security Event recorded']);
         }
 
@@ -148,18 +158,18 @@ class AgentApiController extends Controller
         // Integrate with Incidents if service goes down
         if ($request->type === 'service_down' && $agent->ci_id) {
             $serviceName = $request->payload['service'] ?? 'Unknown Service';
-            
+
             // Check if there's already an active incident for this
             $existingIncident = Incident::where('ci_id', $agent->ci_id)
                 ->where('status', '!=', 'resolved')
                 ->where('title', 'like', "%$serviceName is down%")
                 ->first();
 
-            if (!$existingIncident) {
+            if (! $existingIncident) {
                 $incident = Incident::create([
-                    'title' => "Monitoring Alert: $serviceName is down on " . $agent->hostname,
+                    'title' => "Monitoring Alert: $serviceName is down on ".$agent->hostname,
                     'source' => 'monitoring',
-                    'impact_description' => "Automated alert from Agent " . $agent->agent_id . ".\n\nMessage: " . $request->message,
+                    'impact_description' => 'Automated alert from Agent '.$agent->agent_id.".\n\nMessage: ".$request->message,
                     'status' => 'open',
                     'priority' => 'high',
                     'detected_at' => now(),
@@ -193,32 +203,32 @@ class AgentApiController extends Controller
     {
         // Ambil semua IP yang telah diputuskan untuk diblokir oleh SOC (Human-in-the-Loop)
         // Yaitu response dengan action = 'block_ip' dan status = 'executed'
-        $responses = \App\Models\SecurityIncidentResponse::where('action', 'block_ip')
-                        ->where('status', 'executed')
-                        ->get();
+        $responses = SecurityIncidentResponse::where('action', 'block_ip')
+            ->where('status', 'executed')
+            ->get();
 
         $ips = [];
         foreach ($responses as $response) {
             // Ekstrak IP dari deskripsi menggunakan Regex
             preg_match('/\b\d{1,3}(\.\d{1,3}){3}\b/', $response->description ?? '', $matches);
-            if (!empty($matches[0])) {
+            if (! empty($matches[0])) {
                 $ips[] = $matches[0];
             }
         }
 
         return response()->json([
-            'blacklist' => array_values(array_unique($ips))
+            'blacklist' => array_values(array_unique($ips)),
         ]);
     }
 
     public function fetchCommands(Request $request)
     {
         $agent = $request->user();
-        if (!$agent || !in_array($agent->status, ['approved', 'online'])) {
+        if (! $agent || ! in_array($agent->status, ['approved', 'online'])) {
             return response()->json(['message' => 'Unauthorized or agent not active.'], 403);
         }
 
-        $commands = \App\Models\AgentCommand::where('agent_id', $agent->id)
+        $commands = AgentCommand::where('agent_id', $agent->id)
             ->where('status', 'pending')
             ->get();
 
@@ -227,24 +237,24 @@ class AgentApiController extends Controller
         }
 
         return response()->json([
-            'commands' => $commands->map(function($c) {
+            'commands' => $commands->map(function ($c) {
                 return [
                     'id' => $c->id,
                     'action' => $c->action,
-                    'paths' => $c->paths
+                    'paths' => $c->paths,
                 ];
-            })
+            }),
         ]);
     }
 
     public function submitCommandResult(Request $request, $id)
     {
         $agent = $request->user();
-        $command = \App\Models\AgentCommand::where('agent_id', $agent->id)->findOrFail($id);
+        $command = AgentCommand::where('agent_id', $agent->id)->findOrFail($id);
 
         $command->update([
             'status' => 'completed',
-            'result' => $request->input('result')
+            'result' => $request->input('result'),
         ]);
 
         return response()->json(['message' => 'Command result recorded.']);

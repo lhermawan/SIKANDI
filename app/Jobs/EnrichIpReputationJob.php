@@ -14,6 +14,7 @@ class EnrichIpReputationJob implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public string $ipAddress;
+
     public bool $force;
 
     /**

@@ -165,6 +165,7 @@ class AssetController extends Controller
     public function destroy(Asset $asset)
     {
         $asset->delete();
+
         return back()->with('success', 'Asset berhasil dihapus.');
     }
 }

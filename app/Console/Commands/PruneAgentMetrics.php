@@ -2,8 +2,8 @@
 
 namespace App\Console\Commands;
 
-use App\Models\AgentMetric;
 use App\Models\AgentEvent;
+use App\Models\AgentMetric;
 use Illuminate\Console\Command;
 
 class PruneAgentMetrics extends Command

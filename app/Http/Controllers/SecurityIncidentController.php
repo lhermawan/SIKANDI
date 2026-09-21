@@ -5,6 +5,12 @@ namespace App\Http\Controllers;
 use App\Models\ConfigurationItem;
 use App\Models\Organization;
 use App\Models\SecurityIncident;
+use App\Models\SecurityIncidentAssignment;
+use App\Models\SecurityIncidentAuditLog;
+use App\Models\SecurityIncidentResponse;
+use App\Models\SecurityIncidentTask;
+use App\Models\User;
+use App\Services\ResponseExecutorService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -63,7 +69,7 @@ class SecurityIncidentController extends Controller
     public function show(SecurityIncident $incident): View
     {
         $incident->load(['organization', 'configurationItem', 'reporter', 'assignedLead', 'events', 'agent', 'tasks', 'evidence', 'responses', 'socAuditLogs.user', 'assignments.user']);
-        
+
         // Auto-seed default tasks if none exist
         if ($incident->tasks()->count() === 0) {
             $defaultTasks = [
@@ -84,7 +90,7 @@ class SecurityIncidentController extends Controller
 
     private function logAudit(SecurityIncident $incident, $action, $oldValue = null, $newValue = null)
     {
-        \App\Models\SecurityIncidentAuditLog::create([
+        SecurityIncidentAuditLog::create([
             'incident_id' => $incident->id,
             'user_id' => Auth::id(),
             'action' => $action,
@@ -106,11 +112,11 @@ class SecurityIncidentController extends Controller
 
         if ($oldStatus !== $newStatus) {
             $incident->update(['workflow_status' => $newStatus]);
-            
+
             if ($newStatus === 'investigating' && empty($incident->assigned_lead_id)) {
                 $incident->update(['assigned_lead_id' => Auth::id()]);
             }
-            
+
             if ($newStatus === 'contained' && empty($incident->contained_at)) {
                 $incident->update(['contained_at' => now()]);
             }
@@ -124,18 +130,18 @@ class SecurityIncidentController extends Controller
     public function assign(Request $request, SecurityIncident $incident)
     {
         $validated = $request->validate(['user_id' => 'required|exists:users,id']);
-        
+
         $oldLead = $incident->assignedLead ? $incident->assignedLead->name : 'Unassigned';
         $incident->update(['assigned_lead_id' => $validated['user_id']]);
-        
-        \App\Models\SecurityIncidentAssignment::create([
+
+        SecurityIncidentAssignment::create([
             'incident_id' => $incident->id,
             'user_id' => $validated['user_id'],
             'assigned_by' => Auth::id(),
             'assigned_at' => now(),
         ]);
 
-        $newLead = \App\Models\User::find($validated['user_id'])->name;
+        $newLead = User::find($validated['user_id'])->name;
         $this->logAudit($incident, 'assigned incident', $oldLead, $newLead);
 
         return back()->with('success', 'Insiden berhasil di-assign.');
@@ -154,7 +160,7 @@ class SecurityIncidentController extends Controller
         return back();
     }
 
-    public function toggleTask(Request $request, SecurityIncident $incident, \App\Models\SecurityIncidentTask $task)
+    public function toggleTask(Request $request, SecurityIncident $incident, SecurityIncidentTask $task)
     {
         $newStatus = $task->status === 'PENDING' ? 'COMPLETED' : 'PENDING';
         $task->update([
@@ -162,7 +168,7 @@ class SecurityIncidentController extends Controller
             'checked_by' => $newStatus === 'COMPLETED' ? Auth::id() : null,
             'checked_at' => $newStatus === 'COMPLETED' ? now() : null,
         ]);
-        
+
         return back();
     }
 
@@ -171,7 +177,7 @@ class SecurityIncidentController extends Controller
         $validated = $request->validate([
             'action' => 'required|string',
             'description' => 'required|string',
-            'status' => 'nullable|string'
+            'status' => 'nullable|string',
         ]);
 
         $incident->responses()->create([
@@ -183,41 +189,42 @@ class SecurityIncidentController extends Controller
         ]);
 
         $this->logAudit($incident, 'performed response', null, $validated['action']);
+
         return back()->with('success', 'Tindakan respons berhasil dicatat.');
     }
 
-    public function executeAction(\App\Models\SecurityIncidentResponse $response, \App\Services\ResponseExecutorService $executorService)
+    public function executeAction(SecurityIncidentResponse $response, ResponseExecutorService $executorService)
     {
         // Pengecekan Role (Hanya Super Admin)
-        if (!Auth::user()->hasRole('Super Admin') && !Auth::user()->hasRole('Admin Persandian')) {
+        if (! Auth::user()->hasRole('Super Admin') && ! Auth::user()->hasRole('Admin Persandian')) {
             abort(403, 'Akses Ditolak. Hanya Super Admin yang dapat mengeksekusi tindakan SOC.');
         }
 
         $success = $executorService->execute($response, Auth::id());
 
         if ($success) {
-            return back()->with('success', 'Tindakan eksekusi berhasil dijalankan: ' . $response->result);
+            return back()->with('success', 'Tindakan eksekusi berhasil dijalankan: '.$response->result);
         }
 
         return back()->with('error', 'Gagal mengeksekusi tindakan. Silakan periksa log.');
     }
 
-    public function executeBulkAction(Request $request, \App\Services\ResponseExecutorService $executorService)
+    public function executeBulkAction(Request $request, ResponseExecutorService $executorService)
     {
-        if (!Auth::user()->hasRole('Super Admin') && !Auth::user()->hasRole('Admin Persandian')) {
+        if (! Auth::user()->hasRole('Super Admin') && ! Auth::user()->hasRole('Admin Persandian')) {
             abort(403, 'Akses Ditolak. Hanya Super Admin yang dapat mengeksekusi tindakan SOC.');
         }
 
         $request->validate([
             'response_ids' => 'required|array',
-            'response_ids.*' => 'exists:security_incident_responses,id'
+            'response_ids.*' => 'exists:security_incident_responses,id',
         ]);
 
         $successCount = 0;
         $failCount = 0;
 
         foreach ($request->response_ids as $id) {
-            $response = \App\Models\SecurityIncidentResponse::find($id);
+            $response = SecurityIncidentResponse::find($id);
             if ($response && $response->status === 'pending') {
                 if ($executorService->execute($response, Auth::id())) {
                     $successCount++;
@@ -228,7 +235,9 @@ class SecurityIncidentController extends Controller
         }
 
         $msg = "Berhasil mengeksekusi $successCount tindakan.";
-        if ($failCount > 0) $msg .= " ($failCount gagal).";
+        if ($failCount > 0) {
+            $msg .= " ($failCount gagal).";
+        }
 
         return back()->with('success', $msg);
     }
@@ -247,6 +256,7 @@ class SecurityIncidentController extends Controller
         ]));
 
         $this->logAudit($incident, 'added evidence', null, $validated['title']);
+
         return back()->with('success', 'Bukti berhasil ditambahkan.');
     }
 
@@ -277,6 +287,7 @@ class SecurityIncidentController extends Controller
     public function destroy(SecurityIncident $incident)
     {
         $incident->delete();
+
         return redirect()->route('security.incidents.index')->with('success', 'Insiden Keamanan Siber berhasil dihapus.');
     }
 }

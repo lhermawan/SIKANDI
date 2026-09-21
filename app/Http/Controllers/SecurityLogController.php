@@ -19,11 +19,11 @@ class SecurityLogController extends Controller
             })
             ->when($search, function ($q) use ($search) {
                 $q->where(function ($inner) use ($search) {
-                    $inner->where('event_type', 'like', '%' . $search . '%')
-                        ->orWhere('hostname', 'like', '%' . $search . '%')
-                        ->orWhere('username', 'like', '%' . $search . '%')
-                        ->orWhere('source_ip', 'like', '%' . $search . '%')
-                        ->orWhere('action', 'like', '%' . $search . '%');
+                    $inner->where('event_type', 'like', '%'.$search.'%')
+                        ->orWhere('hostname', 'like', '%'.$search.'%')
+                        ->orWhere('username', 'like', '%'.$search.'%')
+                        ->orWhere('source_ip', 'like', '%'.$search.'%')
+                        ->orWhere('action', 'like', '%'.$search.'%');
                 });
             })
             ->latest('timestamp');
@@ -38,6 +38,7 @@ class SecurityLogController extends Controller
     public function show(SecurityEvent $event)
     {
         $event->load(['agent', 'incident']);
+
         return view('security.logs.show', compact('event'));
     }
 }

@@ -33,8 +33,8 @@ class SecurityIncident extends Model
         'risk_score', 'source_ip', 'username', 'detection_rule',
         'first_seen_at', 'last_seen_at', 'agent_id', 'edr_status',
         // SOC new fields
-        'target_type', 'target_value', 'detected_at', 'contained_at', 
-        'resolved_at', 'resolution_type', 'resolution_summary', 'root_cause'
+        'target_type', 'target_value', 'detected_at', 'contained_at',
+        'resolved_at', 'resolution_type', 'resolution_summary', 'root_cause',
     ];
 
     protected function casts(): array

@@ -41,27 +41,27 @@ class UserController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'name'            => 'required|string|max:255',
-            'username'        => ['required', 'string', 'max:50', 'unique:users,username', 'regex:/^[a-zA-Z0-9\._\-]+$/'],
-            'email'           => 'required|email:rfc,dns|max:255|unique:users,email',
-            'password'        => $this->strongPasswordRule(true),
+            'name' => 'required|string|max:255',
+            'username' => ['required', 'string', 'max:50', 'unique:users,username', 'regex:/^[a-zA-Z0-9\._\-]+$/'],
+            'email' => 'required|email:rfc,dns|max:255|unique:users,email',
+            'password' => $this->strongPasswordRule(true),
             'organization_id' => 'nullable|exists:organizations,id',
-            'phone'           => 'nullable|string|max:50',
-            'nip'             => 'nullable|string|max:50',
-            'role'            => 'required|exists:roles,name',
+            'phone' => 'nullable|string|max:50',
+            'nip' => 'nullable|string|max:50',
+            'role' => 'required|exists:roles,name',
         ], [
-            'username.regex' => 'Username hanya boleh berisi huruf, angka, titik, strip, dan garis bawah tanpa spasi.'
+            'username.regex' => 'Username hanya boleh berisi huruf, angka, titik, strip, dan garis bawah tanpa spasi.',
         ]);
 
         $user = User::create([
-            'name'            => $validated['name'],
-            'username'        => $validated['username'],
-            'email'           => $validated['email'],
-            'password'        => Hash::make($validated['password']),
+            'name' => $validated['name'],
+            'username' => $validated['username'],
+            'email' => $validated['email'],
+            'password' => Hash::make($validated['password']),
             'organization_id' => $validated['organization_id'] ?? null,
-            'phone'           => $validated['phone'] ?? null,
-            'nip'             => $validated['nip'] ?? null,
-            'is_active'       => true,
+            'phone' => $validated['phone'] ?? null,
+            'nip' => $validated['nip'] ?? null,
+            'is_active' => true,
         ]);
 
         $user->assignRole($validated['role']);
@@ -75,16 +75,16 @@ class UserController extends Controller
     public function edit(User $user): JsonResponse
     {
         return response()->json([
-            'id'              => $user->id,
-            'name'            => $user->name,
-            'username'        => $user->username,
-            'email'           => $user->email,
-            'phone'           => $user->phone,
-            'nip'             => $user->nip,
+            'id' => $user->id,
+            'name' => $user->name,
+            'username' => $user->username,
+            'email' => $user->email,
+            'phone' => $user->phone,
+            'nip' => $user->nip,
             'organization_id' => $user->organization_id,
-            'is_active'       => $user->is_active,
-            'role'            => $user->roles->first()?->name,
-            'locked_until'    => $user->locked_until?->toIso8601String(),
+            'is_active' => $user->is_active,
+            'role' => $user->roles->first()?->name,
+            'locked_until' => $user->locked_until?->toIso8601String(),
             'failed_login_count' => $user->failed_login_count ?? 0,
         ]);
     }
@@ -92,29 +92,29 @@ class UserController extends Controller
     public function update(Request $request, User $user): RedirectResponse
     {
         $validated = $request->validate([
-            'name'            => 'required|string|max:255',
-            'username'        => ['required', 'string', 'max:50', 'regex:/^[a-zA-Z0-9\._\-]+$/', 'unique:users,username,' . $user->id],
-            'email'           => 'required|email:rfc|max:255|unique:users,email,' . $user->id,
-            'password'        => $this->strongPasswordRule(false), // nullable saat edit
+            'name' => 'required|string|max:255',
+            'username' => ['required', 'string', 'max:50', 'regex:/^[a-zA-Z0-9\._\-]+$/', 'unique:users,username,'.$user->id],
+            'email' => 'required|email:rfc|max:255|unique:users,email,'.$user->id,
+            'password' => $this->strongPasswordRule(false), // nullable saat edit
             'organization_id' => 'nullable|exists:organizations,id',
-            'phone'           => 'nullable|string|max:50',
-            'nip'             => 'nullable|string|max:50',
-            'role'            => 'required|exists:roles,name',
+            'phone' => 'nullable|string|max:50',
+            'nip' => 'nullable|string|max:50',
+            'role' => 'required|exists:roles,name',
         ], [
-            'username.regex' => 'Username hanya boleh berisi huruf, angka, titik, strip, dan garis bawah tanpa spasi.'
+            'username.regex' => 'Username hanya boleh berisi huruf, angka, titik, strip, dan garis bawah tanpa spasi.',
         ]);
 
         $updateData = [
-            'name'            => $validated['name'],
-            'username'        => $validated['username'],
-            'email'           => $validated['email'],
+            'name' => $validated['name'],
+            'username' => $validated['username'],
+            'email' => $validated['email'],
             'organization_id' => $validated['organization_id'] ?? null,
-            'phone'           => $validated['phone'] ?? null,
-            'nip'             => $validated['nip'] ?? null,
+            'phone' => $validated['phone'] ?? null,
+            'nip' => $validated['nip'] ?? null,
         ];
 
         // Hanya update password jika field diisi
-        if (!empty($validated['password'])) {
+        if (! empty($validated['password'])) {
             $updateData['password'] = Hash::make($validated['password']);
             // Reset lockout saat password diganti admin
             $updateData['failed_login_count'] = 0;
@@ -148,12 +148,13 @@ class UserController extends Controller
         }
 
         $user->update([
-            'is_active'       => !$user->is_active,
-            'locked_until'    => null,   // Buka kunci saat admin mengaktifkan
+            'is_active' => ! $user->is_active,
+            'locked_until' => null,   // Buka kunci saat admin mengaktifkan
             'failed_login_count' => 0,
         ]);
 
         $status = $user->is_active ? 'diaktifkan' : 'dinonaktifkan';
+
         return back()->with('success', "Akun {$user->name} berhasil {$status}.");
     }
 
@@ -164,7 +165,7 @@ class UserController extends Controller
     {
         $user->update([
             'failed_login_count' => 0,
-            'locked_until'       => null,
+            'locked_until' => null,
         ]);
 
         return back()->with('success', "Kunci akun {$user->name} berhasil dibuka.");

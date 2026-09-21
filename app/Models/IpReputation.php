@@ -9,7 +9,7 @@ class IpReputation extends Model
     protected $fillable = [
         'ip_address', 'is_whitelisted', 'is_public', 'abuse_confidence_score',
         'country_code', 'usage_type', 'isp', 'domain',
-        'total_reports', 'raw_data', 'last_checked_at'
+        'total_reports', 'raw_data', 'last_checked_at',
     ];
 
     protected function casts(): array
