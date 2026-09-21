@@ -95,7 +95,7 @@
                     <h2 class="text-base font-bold text-white">Register Risiko Prioritas Tinggi</h2>
                     <p class="text-xs text-slate-400">Ancaman dengan dampak operasional signifikan</p>
                 </div>
-                <a href="{{ route('security.risks') }}" class="text-xs text-blue-400 hover:underline">Semua Risiko</a>
+                <a href="{{ route('security.risks.index') }}" class="text-xs text-blue-400 hover:underline">Semua Risiko</a>
             </div>
 
             <div class="space-y-3">

@@ -73,7 +73,7 @@ class RiskController extends Controller
 
         $risk = Risk::create($validated);
 
-        return redirect()->route('security.risks')->with('success', "Risiko {$risk->risk_code} berhasil didaftarkan ke Risk Register.");
+        return redirect()->route('security.risks.index')->with('success', "Risiko {$risk->risk_code} berhasil didaftarkan ke Risk Register.");
     }
 
     public function storeTreatment(Request $request, Risk $risk): RedirectResponse

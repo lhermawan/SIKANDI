@@ -7,14 +7,14 @@
     <div class="flex items-center justify-between">
         <div>
             <div class="flex items-center gap-2 text-xs text-slate-400 mb-1">
-                <a href="{{ route('security.risks') }}" class="hover:underline">Manajemen Risiko</a>
+                <a href="{{ route('security.risks.index') }}" class="hover:underline">Manajemen Risiko</a>
                 <span>/</span>
                 <span class="text-white">Tambah Risiko</span>
             </div>
             <h1 class="text-2xl font-bold text-white tracking-tight">Daftarkan Risiko Keamanan Informasi</h1>
             <p class="text-xs text-slate-400 mt-0.5">Penilaian probabilitas (likelihood) dan dampak (impact) terhadap aset / CI</p>
         </div>
-        <a href="{{ route('security.risks') }}" class="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium transition">
+        <a href="{{ route('security.risks.index') }}" class="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium transition">
             &larr; Kembali
         </a>
     </div>
@@ -132,7 +132,7 @@
         </div>
 
         <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
-            <a href="{{ route('security.risks') }}" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl">Batal</a>
+            <a href="{{ route('security.risks.index') }}" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl">Batal</a>
             <button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-medium cursor-pointer">
                 Simpan ke Register Risiko
             </button>
