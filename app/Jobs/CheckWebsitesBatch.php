@@ -16,14 +16,18 @@ class CheckWebsitesBatch implements ShouldQueue
 {
     use Batchable, Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    protected $websiteIds;
+    public int $timeout = 120;
+    public int $tries = 2;
+    public int $backoff = 30;
+
+    protected $websiteId;
 
     /**
      * Create a new job instance.
      */
-    public function __construct(array $websiteIds)
+    public function __construct(int $websiteId)
     {
-        $this->websiteIds = $websiteIds;
+        $this->websiteId = $websiteId;
     }
 
     /**
@@ -31,14 +35,13 @@ class CheckWebsitesBatch implements ShouldQueue
      */
     public function handle(WebsiteMonitoringService $monitoringService): void
     {
-        $websites = Website::whereIn('id', $this->websiteIds)->get();
+        $website = Website::find($this->websiteId);
+        if (!$website) return;
 
-        foreach ($websites as $website) {
-            try {
-                $monitoringService->check($website);
-            } catch (\Exception $e) {
-                Log::error("Failed to monitor website ID {$website->id}: " . $e->getMessage());
-            }
+        try {
+            $monitoringService->check($website);
+        } catch (\Exception $e) {
+            Log::error("Failed to monitor website ID {$website->id}: " . $e->getMessage());
         }
     }
 }

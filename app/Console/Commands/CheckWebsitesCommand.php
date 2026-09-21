@@ -37,14 +37,12 @@ class CheckWebsitesCommand extends Command
             return;
         }
 
-        // Pecah menjadi beberapa bagian (chunk)
-        $chunks = array_chunk($websiteIds, 5); // Use smaller chunks so jobs finish faster and progress is granular
+        $websiteIds = Website::pluck('id')->toArray();
 
-        $jobs = [];
-        foreach ($chunks as $chunk) {
-            CheckWebsitesBatch::dispatch($chunk);
+        foreach ($websiteIds as $websiteId) {
+            CheckWebsitesBatch::dispatch($websiteId);
         }
 
-        $this->info(count($websiteIds) . ' websites dispatched for checking in ' . count($chunks) . ' batches.');
+        $this->info(count($websiteIds) . ' website checks dispatched successfully.');
     }
 }

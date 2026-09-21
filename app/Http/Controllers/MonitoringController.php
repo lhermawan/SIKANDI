@@ -144,11 +144,10 @@ class MonitoringController extends Controller
     public function checkAll(Request $request)
     {
         $websiteIds = Website::pluck('id')->toArray();
-        $chunks = array_chunk($websiteIds, 5); // Reduce chunk size to 5 for more granular progress updates
 
         $jobs = [];
-        foreach ($chunks as $chunk) {
-            $jobs[] = new \App\Jobs\CheckWebsitesBatch($chunk);
+        foreach ($websiteIds as $websiteId) {
+            $jobs[] = new \App\Jobs\CheckWebsitesBatch($websiteId);
         }
 
         $batch = \Illuminate\Support\Facades\Bus::batch($jobs)
