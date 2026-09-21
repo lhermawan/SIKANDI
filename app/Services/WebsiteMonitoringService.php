@@ -17,7 +17,7 @@ class WebsiteMonitoringService
         $errorMessage = null;
 
         try {
-            $response = Http::timeout(10)->get($website->url);
+            $response = Http::withoutVerifying()->timeout(10)->get($website->url);
             $httpCode = $response->status();
             $status = $response->successful() ? 'up' : 'down';
             if (! $response->successful()) {
