@@ -31,6 +31,36 @@
     @endif
 
     <!-- Dashboard Cards (matching Section 13) -->
+    <!-- Filters & Actions -->
+    <div class="flex flex-col md:flex-row gap-4 items-center justify-between bg-slate-900/50 p-4 rounded-2xl border border-slate-800 mb-4">
+        <form method="GET" action="{{ route('monitoring.websites') }}" class="flex flex-wrap gap-3 w-full md:w-auto">
+            <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari nama / url..." class="px-3 py-2 bg-slate-950/60 border border-slate-700/80 rounded-xl text-white text-xs focus:ring-2 focus:ring-blue-500 w-full md:w-48">
+            <select name="status" class="px-3 py-2 bg-slate-950/60 border border-slate-700/80 rounded-xl text-slate-200 text-xs focus:ring-2 focus:ring-blue-500">
+                <option value="">Semua Status</option>
+                <option value="up" {{ request('status') == 'up' ? 'selected' : '' }}>UP</option>
+                <option value="down" {{ request('status') == 'down' ? 'selected' : '' }}>DOWN</option>
+                <option value="ssl_warning" {{ request('status') == 'ssl_warning' ? 'selected' : '' }}>SSL Warning</option>
+            </select>
+            <select name="organization_id" class="px-3 py-2 bg-slate-950/60 border border-slate-700/80 rounded-xl text-slate-200 text-xs focus:ring-2 focus:ring-blue-500">
+                <option value="">Semua OPD</option>
+                @foreach($organizations as $org)
+                    <option value="{{ $org->id }}" {{ request('organization_id') == $org->id ? 'selected' : '' }}>{{ $org->name }}</option>
+                @endforeach
+            </select>
+            <button type="submit" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-semibold transition cursor-pointer">Filter</button>
+            @if(request()->anyFilled(['search', 'status', 'organization_id']))
+                <a href="{{ route('monitoring.websites') }}" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-400 rounded-xl text-xs font-semibold transition">Reset</a>
+            @endif
+        </form>
+        <div class="flex gap-2 w-full md:w-auto justify-end">
+            <a href="{{ route('monitoring.websites.export', request()->all()) }}" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold transition flex items-center gap-2 shadow-lg shadow-emerald-600/30 cursor-pointer">
+                Export
+            </a>
+            <button onclick="document.getElementById('importModal').classList.remove('hidden')" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-xs font-semibold transition flex items-center gap-2 shadow-lg shadow-slate-700/30 cursor-pointer">
+                Import
+            </button>
+        </div>
+    </div>
     <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
         <div class="p-4 rounded-2xl bg-slate-900 border border-slate-800 text-center">
             <span class="text-[10px] text-slate-400 uppercase font-semibold">Total Website</span>
@@ -123,14 +153,25 @@
                             <td class="py-3.5 px-4 text-slate-400 text-[11px]">
                                 {{ $site->last_checked_at ? $site->last_checked_at->diffForHumans() : 'Belum dicek' }}
                             </td>
-                            <td class="py-3.5 px-4 text-right">
+                            <td class="py-3.5 px-4 text-right space-x-1 whitespace-nowrap">
                                 <form action="{{ route('monitoring.websites.check', $site) }}" method="POST" class="inline-block">
                                     @csrf
-                                    <button type="submit" class="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-medium transition cursor-pointer flex items-center gap-1.5 shadow">
-                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-                                        <span>Cek Sekarang</span>
+                                    <button type="submit" title="Cek Sekarang" class="px-2 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-medium transition cursor-pointer shadow">
+                                        Cek
                                     </button>
                                 </form>
+                                @hasanyrole('Super Admin|Admin Persandian')
+                                <button onclick="openEditModal({{ $site->id }})" title="Edit" class="px-2 py-1 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-xs font-medium transition cursor-pointer shadow">
+                                    Edit
+                                </button>
+                                <form action="{{ route('monitoring.websites.destroy', $site) }}" method="POST" class="inline-block" onsubmit="return confirm('Hapus website ini dari monitoring?')">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" title="Hapus" class="px-2 py-1 bg-rose-600 hover:bg-rose-500 text-white rounded-lg text-xs font-medium transition cursor-pointer shadow">
+                                        Hapus
+                                    </button>
+                                </form>
+                                @endhasanyrole
                             </td>
                         </tr>
                     @empty
@@ -191,5 +232,100 @@
             </form>
         </div>
     </div>
+    <!-- Modal Import -->
+    <div id="importModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h3 class="text-base font-bold text-white">Import Website (CSV)</h3>
+                <button type="button" onclick="document.getElementById('importModal').classList.add('hidden')" class="text-slate-400 hover:text-white cursor-pointer">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <div class="text-xs text-slate-400 mb-2">
+                Silakan download template CSV terlebih dahulu, isi data, dan upload kembali.
+                <br>
+                <a href="{{ route('monitoring.websites.template') }}" class="text-blue-400 hover:underline mt-1 inline-block">Download Template</a>
+            </div>
+            <form action="{{ route('monitoring.websites.import') }}" method="POST" enctype="multipart/form-data" class="space-y-4 text-xs">
+                @csrf
+                <div>
+                    <label class="block text-slate-300 font-medium mb-1">File CSV *</label>
+                    <input type="file" name="file" accept=".csv" required class="w-full px-3 py-2 bg-slate-950/60 border border-slate-700/80 rounded-xl text-white">
+                </div>
+                <div class="flex justify-end gap-3 pt-3 border-t border-slate-800">
+                    <button type="button" onclick="document.getElementById('importModal').classList.add('hidden')" class="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl cursor-pointer">Batal</button>
+                    <button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-semibold cursor-pointer">Import</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Website Modal (Dynamic) -->
+    <div id="editWebsiteModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h3 class="text-base font-bold text-white">Edit Website</h3>
+                <button type="button" onclick="document.getElementById('editWebsiteModal').classList.add('hidden')" class="text-slate-400 hover:text-white cursor-pointer">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+
+            <form id="editWebsiteForm" method="POST" class="space-y-4 text-xs">
+                @csrf
+                @method('PUT')
+                <div class="grid grid-cols-1 gap-3">
+                    <div>
+                        <label class="block text-slate-300 font-medium mb-1">Nama Website *</label>
+                        <input type="text" name="name" id="edit_name" required class="w-full px-3 py-2 bg-slate-950/60 border border-slate-700/80 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-slate-300 font-medium mb-1">URL (dengan https://) *</label>
+                        <input type="url" name="url" id="edit_url" required class="w-full px-3 py-2 bg-slate-950/60 border border-slate-700/80 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-slate-300 font-medium mb-1">OPD Pengelola *</label>
+                        <select name="organization_id" id="edit_organization_id" required class="w-full px-3 py-2 bg-slate-950/60 border border-slate-700/80 rounded-xl text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">-- Pilih OPD --</option>
+                            @foreach($organizations as $org)
+                                <option value="{{ $org->id }}">{{ $org->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-slate-300 font-medium mb-1">Terkait CMDB (CI) *</label>
+                        <select name="ci_id" id="edit_ci_id" required class="w-full px-3 py-2 bg-slate-950/60 border border-slate-700/80 rounded-xl text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">-- Pilih Configuration Item --</option>
+                            @foreach($configurationItems as $ci)
+                                <option value="{{ $ci->id }}">[{{ $ci->ci_code }}] {{ $ci->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
+                    <button type="button" onclick="document.getElementById('editWebsiteModal').classList.add('hidden')" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-medium cursor-pointer">Batal</button>
+                    <button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-semibold shadow-md shadow-blue-600/30 cursor-pointer">Simpan Perubahan</button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+    const websitesData = @json($websites->items());
+    
+    function openEditModal(id) {
+        const site = websitesData.find(w => w.id === id);
+        if(site) {
+            document.getElementById('edit_name').value = site.name;
+            document.getElementById('edit_url').value = site.url;
+            document.getElementById('edit_organization_id').value = site.organization_id;
+            document.getElementById('edit_ci_id').value = site.ci_id;
+            document.getElementById('editWebsiteForm').action = `/monitoring/websites/${id}`;
+            document.getElementById('editWebsiteModal').classList.remove('hidden');
+        }
+    }
+</script>
+@endpush

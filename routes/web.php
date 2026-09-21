@@ -81,6 +81,11 @@ Route::middleware('auth')->group(function () {
     // Website & SSL Monitoring
     Route::get('/monitoring/websites', [MonitoringController::class, 'websites'])->name('monitoring.websites');
     Route::post('/monitoring/websites', [MonitoringController::class, 'storeWebsite'])->name('monitoring.websites.store');
+    Route::put('/monitoring/websites/{website}', [MonitoringController::class, 'update'])->name('monitoring.websites.update');
+    Route::delete('/monitoring/websites/{website}', [MonitoringController::class, 'destroy'])->name('monitoring.websites.destroy');
+    Route::get('/monitoring/websites/export', [MonitoringController::class, 'export'])->name('monitoring.websites.export');
+    Route::post('/monitoring/websites/import', [MonitoringController::class, 'import'])->name('monitoring.websites.import');
+    Route::get('/monitoring/websites/template', [MonitoringController::class, 'downloadTemplate'])->name('monitoring.websites.template');
     Route::post('/monitoring/websites/{website}/check', [MonitoringController::class, 'check'])->name('monitoring.websites.check');
 
     // Incident Management
