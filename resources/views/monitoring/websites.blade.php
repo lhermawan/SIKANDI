@@ -236,21 +236,21 @@
     <div id="importModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
         <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-4">
             <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-                <h3 class="text-base font-bold text-white">Import Website (CSV)</h3>
+                <h3 class="text-base font-bold text-white">Import Website (Excel)</h3>
                 <button type="button" onclick="document.getElementById('importModal').classList.add('hidden')" class="text-slate-400 hover:text-white cursor-pointer">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
             </div>
             <div class="text-xs text-slate-400 mb-2">
-                Silakan download template CSV terlebih dahulu, isi data, dan upload kembali.
+                Silakan download template Excel (.xlsx) terlebih dahulu, isi data, dan upload kembali.
                 <br>
                 <a href="{{ route('monitoring.websites.template') }}" class="text-blue-400 hover:underline mt-1 inline-block">Download Template</a>
             </div>
             <form action="{{ route('monitoring.websites.import') }}" method="POST" enctype="multipart/form-data" class="space-y-4 text-xs">
                 @csrf
                 <div>
-                    <label class="block text-slate-300 font-medium mb-1">File CSV *</label>
-                    <input type="file" name="file" accept=".csv" required class="w-full px-3 py-2 bg-slate-950/60 border border-slate-700/80 rounded-xl text-white">
+                    <label class="block text-slate-300 font-medium mb-1">File Excel (.xlsx) *</label>
+                    <input type="file" name="file" accept=".xlsx,.xls,.csv" required class="w-full px-3 py-2 bg-slate-950/60 border border-slate-700/80 rounded-xl text-white">
                 </div>
                 <div class="flex justify-end gap-3 pt-3 border-t border-slate-800">
                     <button type="button" onclick="document.getElementById('importModal').classList.add('hidden')" class="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl cursor-pointer">Batal</button>

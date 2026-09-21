@@ -7,6 +7,9 @@ use App\Models\Incident;
 use App\Models\Organization;
 use App\Models\Website;
 use App\Models\WebsiteCheckLog;
+use App\Exports\WebsitesExport;
+use App\Imports\WebsitesImport;
+use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
@@ -92,120 +95,42 @@ class MonitoringController extends Controller
 
     public function downloadTemplate()
     {
-        $headers = [
-            'Content-Type' => 'text/csv',
-            'Content-Disposition' => 'attachment; filename="template_import_website.csv"',
-        ];
-
-        $callback = function() {
-            $file = fopen('php://output', 'w');
-            fputcsv($file, ['name', 'url', 'organization_id', 'ci_id']);
-            
-            $org = Organization::first();
-            $ci = ConfigurationItem::first();
-            
-            fputcsv($file, [
+        $org = Organization::first();
+        $ci = ConfigurationItem::first();
+        
+        $template = [
+            ['name', 'url', 'organization_id', 'ci_id'],
+            [
                 'Website Resmi Dummy',
                 'https://example.ciamiskab.go.id',
                 $org ? $org->id : '1',
                 $ci ? $ci->id : '1'
-            ]);
-            
-            fclose($file);
+            ]
+        ];
+        
+        $export = new class($template) implements \Maatwebsite\Excel\Concerns\FromArray {
+            protected $template;
+            public function __construct($template) { $this->template = $template; }
+            public function array(): array { return $this->template; }
         };
 
-        return response()->stream($callback, 200, $headers);
+        return Excel::download($export, 'template_import_website.xlsx');
     }
 
     public function export(Request $request)
     {
-        $headers = [
-            'Content-Type' => 'text/csv',
-            'Content-Disposition' => 'attachment; filename="laporan_website_monitoring.csv"',
-        ];
-
-        $callback = function() use ($request) {
-            $file = fopen('php://output', 'w');
-            fputcsv($file, [
-                'Nama Website', 'URL', 'OPD Pengelola', 'CI Terkait', 
-                'Status Saat Ini', 'HTTP Status', 'Response Time (ms)', 
-                'Status SSL', 'Masa Aktif SSL (Hari)', 'Terakhir Dicek'
-            ]);
-
-            $query = Website::with(['configurationItem', 'organization'])->latest('last_checked_at');
-
-            if ($search = $request->input('search')) {
-                $query->where(function($q) use ($search) {
-                    $q->where('name', 'like', "%{$search}%")
-                      ->orWhere('url', 'like', "%{$search}%");
-                });
-            }
-            if ($status = $request->input('status')) {
-                if ($status === 'ssl_warning') {
-                    $query->whereIn('ssl_status', ['expiring_soon', 'expired', 'invalid']);
-                } else {
-                    $query->where('current_status', $status);
-                }
-            }
-            if ($opd = $request->input('organization_id')) {
-                $query->where('organization_id', $opd);
-            }
-
-            $query->chunk(100, function ($websites) use ($file) {
-                foreach ($websites as $site) {
-                    $sslDays = null;
-                    if ($site->ssl_expires_at) {
-                        $sslDays = round(now()->diffInDays($site->ssl_expires_at, false));
-                    }
-
-                    fputcsv($file, [
-                        $site->name,
-                        $site->url,
-                        $site->organization ? $site->organization->name : '',
-                        $site->configurationItem ? $site->configurationItem->ci_code : '',
-                        strtoupper($site->current_status),
-                        $site->http_status_code,
-                        $site->response_time_ms,
-                        strtoupper($site->ssl_status),
-                        $sslDays,
-                        $site->last_checked_at ? $site->last_checked_at->format('Y-m-d H:i:s') : ''
-                    ]);
-                }
-            });
-            fclose($file);
-        };
-
-        return response()->stream($callback, 200, $headers);
+        return Excel::download(new WebsitesExport($request), 'laporan_website_monitoring.xlsx');
     }
 
     public function import(Request $request): RedirectResponse
     {
         $request->validate([
-            'file' => 'required|mimes:csv,txt|max:2048'
+            'file' => 'required|mimes:xlsx,xls,csv|max:2048'
         ]);
 
-        $file = $request->file('file');
-        $handle = fopen($file->getRealPath(), 'r');
-        $header = fgetcsv($handle);
-        
-        $count = 0;
-        while (($row = fgetcsv($handle)) !== false) {
-            if (count($header) == count($row)) {
-                $data = array_combine($header, $row);
-                if (!empty($data['name']) && !empty($data['url']) && !empty($data['organization_id']) && !empty($data['ci_id'])) {
-                    Website::create([
-                        'name' => $data['name'],
-                        'url' => $data['url'],
-                        'organization_id' => $data['organization_id'],
-                        'ci_id' => $data['ci_id'],
-                    ]);
-                    $count++;
-                }
-            }
-        }
-        fclose($handle);
+        Excel::import(new WebsitesImport, $request->file('file'));
 
-        return back()->with('success', "Berhasil mengimpor {$count} website ke dalam monitoring.");
+        return back()->with('success', "Berhasil mengimpor website ke dalam monitoring.");
     }
 
     public function check(Website $website): RedirectResponse
