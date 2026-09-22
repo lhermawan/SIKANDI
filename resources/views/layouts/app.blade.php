@@ -164,5 +164,88 @@
         }
     </script>
     @stack('scripts')
+    
+    @auth
+    <!-- Auto Logout Form & Modal -->
+    <form id="auto-logout-form" action="{{ route('logout') }}" method="POST" class="hidden">
+        @csrf
+    </form>
+
+    <div id="autoLogoutModal" class="fixed inset-0 z-[100] bg-slate-950/90 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-700/80 rounded-3xl w-full max-w-sm shadow-2xl p-8 text-center space-y-5">
+            <div class="w-20 h-20 bg-amber-500/20 text-amber-400 rounded-full flex items-center justify-center mx-auto mb-2 animate-pulse">
+                <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </div>
+            <div>
+                <h3 class="text-xl font-bold text-white mb-2">Sesi Akan Berakhir</h3>
+                <p class="text-sm text-slate-400 leading-relaxed">Karena tidak ada aktivitas, Anda akan otomatis ter-logout dari SIKANDI dalam:</p>
+            </div>
+            <div class="py-2">
+                <span id="logoutCountdown" class="text-5xl font-black text-amber-400 tracking-tighter">60</span>
+                <span class="text-sm font-medium text-amber-400/60 block mt-1 uppercase tracking-widest">Detik</span>
+            </div>
+            <button type="button" onclick="resetIdleTimer()" class="w-full px-4 py-3 bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold rounded-xl transition cursor-pointer shadow-lg shadow-blue-500/20 ring-1 ring-blue-500/50">
+                Tetap Login
+            </button>
+        </div>
+    </div>
+
+    <script>
+        let idleTime = 0;
+        const maxIdleTime = 15 * 60; // 15 menit
+        const warningTime = 14 * 60; // Muncul modal di menit ke-14
+        let idleInterval;
+        let countdownInterval;
+        let isLogoutWarningActive = false;
+
+        function resetIdleTimer() {
+            idleTime = 0;
+            if (isLogoutWarningActive) {
+                document.getElementById('autoLogoutModal').classList.add('hidden');
+                document.getElementById('autoLogoutModal').classList.remove('flex');
+                clearInterval(countdownInterval);
+                document.getElementById('logoutCountdown').innerText = '60';
+                isLogoutWarningActive = false;
+            }
+        }
+
+        // Reset timer on any user activity
+        window.onload = resetIdleTimer;
+        window.onmousemove = resetIdleTimer;
+        window.onmousedown = resetIdleTimer;
+        window.ontouchstart = resetIdleTimer;
+        window.onclick = resetIdleTimer;
+        window.onkeydown = resetIdleTimer;
+        window.addEventListener('scroll', resetIdleTimer, true);
+
+        function checkIdleTime() {
+            idleTime++;
+            if (idleTime >= maxIdleTime) {
+                document.getElementById('auto-logout-form').submit();
+            } else if (idleTime >= warningTime) {
+                const modal = document.getElementById('autoLogoutModal');
+                if (!isLogoutWarningActive) {
+                    modal.classList.remove('hidden');
+                    modal.classList.add('flex');
+                    isLogoutWarningActive = true;
+                    
+                    let secondsLeft = maxIdleTime - idleTime;
+                    document.getElementById('logoutCountdown').innerText = secondsLeft;
+                    
+                    countdownInterval = setInterval(() => {
+                        secondsLeft--;
+                        document.getElementById('logoutCountdown').innerText = secondsLeft;
+                        if (secondsLeft <= 0) {
+                            clearInterval(countdownInterval);
+                        }
+                    }, 1000);
+                }
+            }
+        }
+        
+        // Check every second
+        idleInterval = setInterval(checkIdleTime, 1000);
+    </script>
+    @endauth
 </body>
 </html>
