@@ -191,22 +191,24 @@
     </div>
 
     <script>
-        let idleTime = 0;
-        const maxIdleTime = 15 * 60; // 15 menit
-        const warningTime = 14 * 60; // Muncul modal di menit ke-14
+        const maxIdleTimeMs = 15 * 60 * 1000; // 15 menit
+        const warningTimeMs = 14 * 60 * 1000; // Muncul modal di menit ke-14
         let idleInterval;
-        let countdownInterval;
         let isLogoutWarningActive = false;
 
         function resetIdleTimer() {
-            idleTime = 0;
+            localStorage.setItem('sikandi_last_activity', Date.now().toString());
             if (isLogoutWarningActive) {
                 document.getElementById('autoLogoutModal').classList.add('hidden');
                 document.getElementById('autoLogoutModal').classList.remove('flex');
-                clearInterval(countdownInterval);
                 document.getElementById('logoutCountdown').innerText = '60';
                 isLogoutWarningActive = false;
             }
+        }
+
+        // Initialize localStorage if empty
+        if (!localStorage.getItem('sikandi_last_activity')) {
+            resetIdleTimer();
         }
 
         // Reset timer on any user activity
@@ -219,31 +221,26 @@
         window.addEventListener('scroll', resetIdleTimer, true);
 
         function checkIdleTime() {
-            idleTime++;
-            if (idleTime >= maxIdleTime) {
+            const lastActivity = parseInt(localStorage.getItem('sikandi_last_activity') || Date.now());
+            const idleTimeMs = Date.now() - lastActivity;
+
+            if (idleTimeMs >= maxIdleTimeMs) {
                 document.getElementById('auto-logout-form').submit();
-            } else if (idleTime >= warningTime) {
+            } else if (idleTimeMs >= warningTimeMs) {
                 const modal = document.getElementById('autoLogoutModal');
                 if (!isLogoutWarningActive) {
                     modal.classList.remove('hidden');
                     modal.classList.add('flex');
                     isLogoutWarningActive = true;
-                    
-                    let secondsLeft = maxIdleTime - idleTime;
-                    document.getElementById('logoutCountdown').innerText = secondsLeft;
-                    
-                    countdownInterval = setInterval(() => {
-                        secondsLeft--;
-                        document.getElementById('logoutCountdown').innerText = secondsLeft;
-                        if (secondsLeft <= 0) {
-                            clearInterval(countdownInterval);
-                        }
-                    }, 1000);
                 }
+                
+                let secondsLeft = Math.ceil((maxIdleTimeMs - idleTimeMs) / 1000);
+                if (secondsLeft < 0) secondsLeft = 0;
+                document.getElementById('logoutCountdown').innerText = secondsLeft;
             }
         }
         
-        // Check every second
+        // Check every second. Menggunakan timestamp menghindari isu browser throttling (sleep) di background tab.
         idleInterval = setInterval(checkIdleTime, 1000);
     </script>
     @endauth
