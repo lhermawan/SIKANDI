@@ -32,17 +32,23 @@ class User extends Authenticatable
         'password',
         'is_active',
         'avatar_url',
+        'locked_until',
+        'two_factor_secret',
+        'two_factor_recovery_codes',
+        'two_factor_confirmed_at',
         'last_login_at',
     ];
 
     /**
      * The attributes that should be hidden for serialization.
      *
-     * @var list<string>
+     * @var array<int, string>
      */
     protected $hidden = [
         'password',
         'remember_token',
+        'two_factor_secret',
+        'two_factor_recovery_codes',
     ];
 
     /**
@@ -56,6 +62,8 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'is_active' => 'boolean',
+            'locked_until' => 'datetime',
+            'two_factor_confirmed_at' => 'datetime',
             'last_login_at' => 'datetime',
         ];
     }

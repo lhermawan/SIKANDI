@@ -234,15 +234,15 @@
     <!-- User Mini Profile & Logout -->
     <div class="p-3 border-t border-slate-800/80 bg-slate-900/60">
         <div class="flex items-center justify-between gap-2">
-            <div class="flex items-center gap-2.5 min-w-0">
-                <div class="w-8 h-8 rounded-lg bg-blue-600/30 text-blue-400 border border-blue-500/30 flex items-center justify-center font-bold text-xs shrink-0">
+            <a href="{{ route('profile.security') }}" class="flex items-center gap-2.5 min-w-0 group hover:bg-slate-800/50 p-1.5 rounded-xl transition cursor-pointer">
+                <div class="w-8 h-8 rounded-lg bg-blue-600/30 text-blue-400 border border-blue-500/30 flex items-center justify-center font-bold text-xs shrink-0 group-hover:bg-blue-600 group-hover:text-white transition">
                     {{ strtoupper(substr(auth()->user()->name ?? 'U', 0, 2)) }}
                 </div>
                 <div class="min-w-0">
-                    <p class="text-xs font-semibold text-white truncate">{{ auth()->user()->name ?? 'Pengguna' }}</p>
-                    <p class="text-[10px] text-slate-400 truncate">{{ auth()->user()->roles->first()?->name ?? 'User' }}</p>
+                    <p class="text-xs font-semibold text-white truncate group-hover:text-blue-400 transition">{{ auth()->user()->name ?? 'Pengguna' }}</p>
+                    <p class="text-[10px] text-slate-400 truncate group-hover:text-slate-300">Pengaturan 2FA</p>
                 </div>
-            </div>
+            </a>
 
             <form action="{{ route('logout') }}" method="POST">
                 @csrf

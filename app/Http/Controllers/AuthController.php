@@ -115,14 +115,27 @@ class AuthController extends Controller
             ])->onlyInput('login');
         }
 
-        // --- 5. AUTH ATTEMPT ---
-        if (Auth::attempt([$loginField => $credentials['login'], 'password' => $credentials['password'], 'is_active' => true], $request->boolean('remember'))) {
-            $request->session()->regenerate();
-
-            // Reset semua penanda keamanan setelah login berhasil
+        // --- 5. AUTH ATTEMPT (PASSWORD VALIDATION) ---
+        // Kita validasi manual password-nya dulu
+        if (Auth::validate([$loginField => $credentials['login'], 'password' => $credentials['password'], 'is_active' => true])) {
+            $user = User::where($loginField, $credentials['login'])->first();
+            
+            // Reset throttle karena password benar
             RateLimiter::clear($throttleKey);
 
-            $user = Auth::user();
+            // Cek apakah user punya 2FA aktif
+            if ($user->two_factor_secret && $user->two_factor_confirmed_at) {
+                // Simpan ID user ke session sementara
+                $request->session()->put('2fa_user_id', $user->id);
+                $request->session()->put('2fa_remember', $request->boolean('remember'));
+                
+                return redirect()->route('2fa.challenge');
+            }
+
+            // Jika tidak ada 2FA, langsung login
+            Auth::login($user, $request->boolean('remember'));
+            $request->session()->regenerate();
+
             $user->update([
                 'last_login_at' => now(),
                 'failed_login_count' => 0,

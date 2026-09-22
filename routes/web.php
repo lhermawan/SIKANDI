@@ -32,7 +32,9 @@ use Illuminate\Support\Facades\Route;
 // Authentication Routes
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
-    Route::post('/login', [AuthController::class, 'login'])->name('login.post');
+    Route::post('/login', [AuthController::class, 'login'])->name('login.post')->middleware('throttle:5,1');
+    Route::get('/2fa/challenge', [\App\Http\Controllers\TwoFactorController::class, 'challenge'])->name('2fa.challenge');
+    Route::post('/2fa/verify', [\App\Http\Controllers\TwoFactorController::class, 'verify'])->name('2fa.verify');
 });
 
 // Hardware Label Public Scan (Mobile QR Scan)
@@ -172,6 +174,11 @@ Route::middleware('auth')->group(function () {
     Route::post('/documents', [KnowledgeController::class, 'storeDocument'])->name('documents.store');
     Route::get('/documents/{document}/download', [KnowledgeController::class, 'downloadDocument'])->name('documents.download');
     Route::delete('/documents/{document}', [KnowledgeController::class, 'destroyDocument'])->name('documents.destroy');
+
+    // Profile / Security Settings (2FA)
+    Route::get('/profile/security', [\App\Http\Controllers\TwoFactorController::class, 'index'])->name('profile.security');
+    Route::post('/profile/security/2fa/enable', [\App\Http\Controllers\TwoFactorController::class, 'enable'])->name('profile.2fa.enable');
+    Route::post('/profile/security/2fa/disable', [\App\Http\Controllers\TwoFactorController::class, 'disable'])->name('profile.2fa.disable');
 
     // Administration (Roles & OPD)
     Route::prefix('admin')->name('admin.')->middleware(['role:Super Admin|Admin Persandian'])->group(function () {
