@@ -36,3 +36,14 @@
 - [x] Buat API Endpoint (contoh: `/monitoring/websites/batch-status/{id}`) untuk memberikan data progress scanning ke *frontend*.
 - [x] Buat Modal/UI Progress Bar ala "Antivirus" di `websites.blade.php`.
 - [x] Gunakan JavaScript (AJAX Polling / setInterval) untuk menembak API dan menganimasikan Progress Bar secara *real-time* saat tombol "Check All" diklik.
+# Modul Public Incident Report (Migrasi CSIRT)
+- [ ] 1. Desain Skema Database PublicIncidentReport
+  - [ ] Buat migration tabel public_incident_reports yang strukturnya mereplikasi tabel whatsapp_incident_reports dari DB CSIRT lama (	icket_number, whatsapp_from, eporter_name, incident_type, dll).
+- [ ] 2. Pembuatan Model & Controller (Backend Admin)
+  - [ ] Buat PublicIncidentReport Model.
+  - [ ] Buat PublicIncidentReportController untuk dashboard admin (triage & validasi).
+  - [ ] Buat view untuk dashboard CSIRT admin (esources/views/csirt/index.blade.php).
+- [ ] 3. Endpoint API (Integrasi Eksternal)
+  - [ ] Buat POST /api/v1/public-incidents untuk menerima laporan dari Bot Sandikami dan Portal Publik.
+- [ ] 4. Fungsionalitas Eskalasi (Triage to SOC)
+  - [ ] Buat tombol/logic Eskalasi ke SOC yang memigrasikan status *public report* menjadi *Security Incident* tiket resmi di SIKANDI.
