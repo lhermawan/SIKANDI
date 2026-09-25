@@ -80,7 +80,7 @@ class SecurityIncidentController extends Controller
 
     public function show(SecurityIncident $incident): View
     {
-        $incident->load(['organization', 'configurationItem', 'reporter', 'assignedLead', 'events', 'agent', 'tasks', 'evidence', 'responses', 'socAuditLogs.user', 'assignments.user']);
+        $incident->load(['organization', 'configurationItem', 'reporter', 'assignedLead', 'events', 'agent', 'tasks', 'evidence', 'responses', 'socAuditLogs.user', 'assignments.user', 'publicIncidentReport']);
 
         // Auto-seed default tasks if none exist
         if ($incident->tasks()->count() === 0) {

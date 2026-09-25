@@ -16,11 +16,13 @@ use App\Http\Controllers\IkasandiController;
 use App\Http\Controllers\IncidentController;
 use App\Http\Controllers\KnowledgeController;
 use App\Http\Controllers\MonitoringController;
+use App\Http\Controllers\PublicIncidentReportController;
 use App\Http\Controllers\RiskController;
 use App\Http\Controllers\SecurityIncidentController;
 use App\Http\Controllers\SecurityLogController;
 use App\Http\Controllers\SecurityRuleController;
 use App\Http\Controllers\TicketController;
+use App\Http\Controllers\TwoFactorController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -33,8 +35,8 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
     Route::post('/login', [AuthController::class, 'login'])->name('login.post')->middleware('throttle:5,1');
-    Route::get('/2fa/challenge', [\App\Http\Controllers\TwoFactorController::class, 'challenge'])->name('2fa.challenge');
-    Route::post('/2fa/verify', [\App\Http\Controllers\TwoFactorController::class, 'verify'])->name('2fa.verify');
+    Route::get('/2fa/challenge', [TwoFactorController::class, 'challenge'])->name('2fa.challenge');
+    Route::post('/2fa/verify', [TwoFactorController::class, 'verify'])->name('2fa.verify')->middleware('throttle:5,1');
 });
 
 // Hardware Label Public Scan (Mobile QR Scan)
@@ -59,13 +61,31 @@ Route::middleware('auth')->group(function () {
     Route::get('/cmdb/graph', [CmdbController::class, 'graph'])->name('cmdb.graph');
     Route::get('/cmdb/graph/data', [CmdbController::class, 'graphData'])->name('cmdb.graph.data');
     Route::get('/cmdb/relationships', [CmdbController::class, 'relationships'])->name('cmdb.relationships');
-    Route::post('/cmdb/relationships', [CmdbController::class, 'storeRelationship'])->name('cmdb.relationships.store');
-    Route::delete('/cmdb/relationships/{relationship}', [CmdbController::class, 'destroyRelationship'])->name('cmdb.relationships.destroy');
-    Route::resource('cmdb', CmdbController::class)->parameters(['cmdb' => 'cmdb']);
+    Route::get('/cmdb', [CmdbController::class, 'index'])->name('cmdb.index');
+    Route::get('/cmdb/{cmdb}', [CmdbController::class, 'show'])->name('cmdb.show');
+
+    Route::middleware(['role:Super Admin|Admin Persandian|IT Technician'])->group(function () {
+        Route::get('/cmdb/create', [CmdbController::class, 'create'])->name('cmdb.create');
+        Route::post('/cmdb', [CmdbController::class, 'store'])->name('cmdb.store');
+        Route::get('/cmdb/{cmdb}/edit', [CmdbController::class, 'edit'])->name('cmdb.edit');
+        Route::match(['put', 'patch'], '/cmdb/{cmdb}', [CmdbController::class, 'update'])->name('cmdb.update');
+        Route::delete('/cmdb/{cmdb}', [CmdbController::class, 'destroy'])->name('cmdb.destroy');
+        Route::post('/cmdb/relationships', [CmdbController::class, 'storeRelationship'])->name('cmdb.relationships.store');
+        Route::delete('/cmdb/relationships/{relationship}', [CmdbController::class, 'destroyRelationship'])->name('cmdb.relationships.destroy');
+    });
 
     // IT Asset Management (ITAM)
+    Route::get('/itam', [AssetController::class, 'index'])->name('itam.index');
+    Route::get('/itam/{asset}', [AssetController::class, 'show'])->name('itam.show');
     Route::get('/itam/{asset}/print-label', [AssetController::class, 'printLabel'])->name('itam.print-label');
-    Route::resource('itam', AssetController::class)->parameters(['itam' => 'asset']);
+
+    Route::middleware(['role:Super Admin|Admin Persandian|IT Technician'])->group(function () {
+        Route::get('/itam/create', [AssetController::class, 'create'])->name('itam.create');
+        Route::post('/itam', [AssetController::class, 'store'])->name('itam.store');
+        Route::get('/itam/{asset}/edit', [AssetController::class, 'edit'])->name('itam.edit');
+        Route::match(['put', 'patch'], '/itam/{asset}', [AssetController::class, 'update'])->name('itam.update');
+        Route::delete('/itam/{asset}', [AssetController::class, 'destroy'])->name('itam.destroy');
+    });
 
     // IT Service Desk (Tiket Layanan)
     Route::prefix('service-desk')->name('service-desk.')->group(function () {
@@ -82,19 +102,24 @@ Route::middleware('auth')->group(function () {
 
     // Website & SSL Monitoring
     Route::get('/monitoring/websites', [MonitoringController::class, 'websites'])->name('monitoring.websites');
-    Route::post('/monitoring/websites', [MonitoringController::class, 'storeWebsite'])->name('monitoring.websites.store');
-    Route::put('/monitoring/websites/{website}', [MonitoringController::class, 'update'])->name('monitoring.websites.update');
-    Route::delete('/monitoring/websites/{website}', [MonitoringController::class, 'destroy'])->name('monitoring.websites.destroy');
     Route::get('/monitoring/websites/export', [MonitoringController::class, 'export'])->name('monitoring.websites.export');
-    Route::post('/monitoring/websites/import', [MonitoringController::class, 'import'])->name('monitoring.websites.import');
     Route::get('/monitoring/websites/template', [MonitoringController::class, 'downloadTemplate'])->name('monitoring.websites.template');
-    Route::post('/monitoring/websites/check-all', [MonitoringController::class, 'checkAll'])->name('monitoring.websites.check-all');
     Route::get('/monitoring/websites/batch-status/{id}', [MonitoringController::class, 'batchStatus'])->name('monitoring.websites.batch-status');
-    Route::post('/monitoring/websites/{website}/check', [MonitoringController::class, 'check'])->name('monitoring.websites.check');
+
+    Route::middleware(['role:Super Admin|Admin Persandian|IT Technician'])->group(function () {
+        Route::post('/monitoring/websites', [MonitoringController::class, 'storeWebsite'])->name('monitoring.websites.store');
+        Route::put('/monitoring/websites/{website}', [MonitoringController::class, 'update'])->name('monitoring.websites.update');
+        Route::delete('/monitoring/websites/{website}', [MonitoringController::class, 'destroy'])->name('monitoring.websites.destroy');
+        Route::post('/monitoring/websites/import', [MonitoringController::class, 'import'])->name('monitoring.websites.import');
+        Route::post('/monitoring/websites/check-all', [MonitoringController::class, 'checkAll'])->name('monitoring.websites.check-all');
+        Route::post('/monitoring/websites/{website}/check', [MonitoringController::class, 'check'])->name('monitoring.websites.check');
+    });
 
     // Incident Management
     Route::resource('incidents', IncidentController::class)->except(['destroy']);
-    Route::delete('incidents/{incident}', [IncidentController::class, 'destroy'])->name('incidents.destroy');
+    Route::delete('incidents/{incident}', [IncidentController::class, 'destroy'])
+        ->name('incidents.destroy')
+        ->middleware('role:Super Admin|Admin Persandian|IT Technician');
     Route::post('/incidents/{incident}/comment', [IncidentController::class, 'addComment'])->name('incidents.comment');
 
     // Security, CSIRT Incidents, and Agents
@@ -119,6 +144,12 @@ Route::middleware('auth')->group(function () {
             Route::post('/incidents/{incident}/assign', [SecurityIncidentController::class, 'assign'])->name('incidents.assign');
             Route::delete('/incidents/bulk-destroy', [SecurityIncidentController::class, 'bulkDestroy'])->name('incidents.bulk-destroy');
             Route::delete('/incidents/{incident}', [SecurityIncidentController::class, 'destroy'])->name('incidents.destroy');
+
+            // Insiden Publik (Laporan Inbound dari WhatsApp / CSIRT)
+            Route::get('/public-incidents', [PublicIncidentReportController::class, 'index'])->name('public-incidents.index');
+            Route::get('/public-incidents/{id}', [PublicIncidentReportController::class, 'show'])->name('public-incidents.show');
+            Route::post('/public-incidents/{id}/reject', [PublicIncidentReportController::class, 'reject'])->name('public-incidents.reject');
+            Route::post('/public-incidents/{id}/escalate', [PublicIncidentReportController::class, 'escalate'])->name('public-incidents.escalate');
 
             // Threat Actors & HitL Approvals
             Route::get('/threat-actors', [DashboardController::class, 'threatActors'])->name('threat-actors.index');
@@ -164,9 +195,12 @@ Route::middleware('auth')->group(function () {
         Route::get('/dashboard', [IkasandiController::class, 'dashboard'])->name('dashboard');
         Route::get('/assessment', [IkasandiController::class, 'assessment'])->name('assessment');
         Route::post('/assessment/{assessment}', [IkasandiController::class, 'submitAssessment'])->name('assessment.submit');
-        Route::post('/assessment/{assessment}/verify', [IkasandiController::class, 'verifyAssessment'])->name('assessment.verify');
         Route::get('/assessment/{assessment}/print', [IkasandiController::class, 'printAssessment'])->name('assessment.print');
-        Route::delete('/assessment/{assessment}', [IkasandiController::class, 'destroy'])->name('assessment.destroy');
+
+        Route::middleware(['role:Super Admin|Admin Persandian'])->group(function () {
+            Route::post('/assessment/{assessment}/verify', [IkasandiController::class, 'verifyAssessment'])->name('assessment.verify');
+            Route::delete('/assessment/{assessment}', [IkasandiController::class, 'destroy'])->name('assessment.destroy');
+        });
     });
 
     // Knowledge Base & Documentation
@@ -176,9 +210,9 @@ Route::middleware('auth')->group(function () {
     Route::delete('/documents/{document}', [KnowledgeController::class, 'destroyDocument'])->name('documents.destroy');
 
     // Profile / Security Settings (2FA)
-    Route::get('/profile/security', [\App\Http\Controllers\TwoFactorController::class, 'index'])->name('profile.security');
-    Route::post('/profile/security/2fa/enable', [\App\Http\Controllers\TwoFactorController::class, 'enable'])->name('profile.2fa.enable');
-    Route::post('/profile/security/2fa/disable', [\App\Http\Controllers\TwoFactorController::class, 'disable'])->name('profile.2fa.disable');
+    Route::get('/profile/security', [TwoFactorController::class, 'index'])->name('profile.security');
+    Route::post('/profile/security/2fa/enable', [TwoFactorController::class, 'enable'])->name('profile.2fa.enable');
+    Route::post('/profile/security/2fa/disable', [TwoFactorController::class, 'disable'])->name('profile.2fa.disable');
 
     // Administration (Roles & OPD)
     Route::prefix('admin')->name('admin.')->middleware(['role:Super Admin|Admin Persandian'])->group(function () {
@@ -197,8 +231,8 @@ Route::middleware('auth')->group(function () {
         Route::delete('/organizations/{organization}', [OrganizationController::class, 'destroy'])->name('organizations.destroy');
         Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('audit-logs');
 
-        // Roles Management
-        Route::resource('roles', RoleController::class)->except(['show']);
+        // Roles Management (Super Admin only)
+        Route::resource('roles', RoleController::class)->except(['show'])->middleware('role:Super Admin');
 
         // Master Data: Lokasi & Ruang
         Route::resource('locations', LocationController::class)->except(['create', 'show', 'edit']);

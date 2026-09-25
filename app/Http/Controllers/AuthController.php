@@ -119,7 +119,7 @@ class AuthController extends Controller
         // Kita validasi manual password-nya dulu
         if (Auth::validate([$loginField => $credentials['login'], 'password' => $credentials['password'], 'is_active' => true])) {
             $user = User::where($loginField, $credentials['login'])->first();
-            
+
             // Reset throttle karena password benar
             RateLimiter::clear($throttleKey);
 
@@ -128,7 +128,7 @@ class AuthController extends Controller
                 // Simpan ID user ke session sementara
                 $request->session()->put('2fa_user_id', $user->id);
                 $request->session()->put('2fa_remember', $request->boolean('remember'));
-                
+
                 return redirect()->route('2fa.challenge');
             }
 

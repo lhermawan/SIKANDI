@@ -53,6 +53,10 @@ class UserController extends Controller
             'username.regex' => 'Username hanya boleh berisi huruf, angka, titik, strip, dan garis bawah tanpa spasi.',
         ]);
 
+        if ($validated['role'] === 'Super Admin' && ! auth()->user()->hasRole('Super Admin')) {
+            return back()->with('error', 'Hanya Super Admin yang berhak membuat akun dengan role Super Admin.');
+        }
+
         $user = User::create([
             'name' => $validated['name'],
             'username' => $validated['username'],
@@ -104,6 +108,16 @@ class UserController extends Controller
             'username.regex' => 'Username hanya boleh berisi huruf, angka, titik, strip, dan garis bawah tanpa spasi.',
         ]);
 
+        // Cegah non-Super Admin memodifikasi akun Super Admin
+        if ($user->hasRole('Super Admin') && ! auth()->user()->hasRole('Super Admin')) {
+            return back()->with('error', 'Akses ditolak. Anda tidak berhak mengubah akun Super Admin.');
+        }
+
+        // Cegah non-Super Admin menetapkan role Super Admin
+        if ($validated['role'] === 'Super Admin' && ! auth()->user()->hasRole('Super Admin')) {
+            return back()->with('error', 'Hanya Super Admin yang berhak menetapkan role Super Admin.');
+        }
+
         $updateData = [
             'name' => $validated['name'],
             'username' => $validated['username'],
@@ -134,6 +148,10 @@ class UserController extends Controller
             return back()->with('error', 'Anda tidak dapat menghapus akun Anda sendiri.');
         }
 
+        if ($user->hasRole('Super Admin') && ! auth()->user()->hasRole('Super Admin')) {
+            return back()->with('error', 'Akses ditolak. Anda tidak berhak menghapus akun Super Admin.');
+        }
+
         $name = $user->name;
         $user->delete(); // SoftDelete
 
@@ -145,6 +163,10 @@ class UserController extends Controller
         // Cegah menonaktifkan diri sendiri
         if ($user->id === auth()->id()) {
             return back()->with('error', 'Anda tidak dapat menonaktifkan akun Anda sendiri.');
+        }
+
+        if ($user->hasRole('Super Admin') && ! auth()->user()->hasRole('Super Admin')) {
+            return back()->with('error', 'Akses ditolak. Anda tidak berhak mengubah status akun Super Admin.');
         }
 
         $user->update([

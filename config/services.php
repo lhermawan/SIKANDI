@@ -45,4 +45,8 @@ return [
         'key' => env('ABUSEIPDB_API_KEY'),
     ],
 
+    'whatsapp' => [
+        'token' => env('WA_BOT_SECRET'),
+    ],
+
 ];

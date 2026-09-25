@@ -2,11 +2,10 @@
 
 namespace Database\Seeders;
 
-use App\Models\Website;
-use App\Models\Organization;
-use App\Models\ConfigurationItem;
 use App\Models\CiType;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use App\Models\ConfigurationItem;
+use App\Models\Organization;
+use App\Models\Website;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
 
@@ -390,9 +389,9 @@ class WebsiteSeeder extends Seeder
             $organization = Organization::firstOrCreate(
                 ['name' => $webData['author']],
                 [
-                    'code' => strtoupper(substr(Str::slug($webData['author'], ''), 0, 40)) . '-' . Str::random(5),
+                    'code' => strtoupper(substr(Str::slug($webData['author'], ''), 0, 40)).'-'.Str::random(5),
                     'category' => 'dinas',
-                    'is_active' => true
+                    'is_active' => true,
                 ]
             );
 
@@ -405,7 +404,7 @@ class WebsiteSeeder extends Seeder
                     'ci_id' => $defaultCi->id,
                     'check_interval_minutes' => 60,
                     'is_active' => true,
-                    'current_status' => 'unknown'
+                    'current_status' => 'unknown',
                 ]
             );
         }

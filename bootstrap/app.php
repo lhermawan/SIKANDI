@@ -1,5 +1,8 @@
 <?php
 
+use App\Http\Middleware\EnsureAgentToken;
+use App\Http\Middleware\EnsureUserToken;
+use App\Http\Middleware\SecurityHeadersMiddleware;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -16,10 +19,14 @@ $app = Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->append(SecurityHeadersMiddleware::class);
+
         $middleware->alias([
             'role' => RoleMiddleware::class,
             'permission' => PermissionMiddleware::class,
             'role_or_permission' => RoleOrPermissionMiddleware::class,
+            'user.token' => EnsureUserToken::class,
+            'agent.token' => EnsureAgentToken::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

@@ -2,9 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AuditLog;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use PragmaRX\Google2FA\Google2FA;
 
 class TwoFactorController extends Controller
 {
@@ -15,18 +16,18 @@ class TwoFactorController extends Controller
     {
         $user = Auth::user();
         $google2fa = app('pragmarx.google2fa');
-        
+
         $qrCodeUrl = null;
         $secret = $user->two_factor_secret;
 
-        if (!$secret) {
+        if (! $secret) {
             $secret = $google2fa->generateSecretKey();
             $request->session()->put('2fa_setup_secret', $secret);
         } else {
             $request->session()->forget('2fa_setup_secret');
         }
 
-        if ($secret && !$user->two_factor_confirmed_at) {
+        if ($secret && ! $user->two_factor_confirmed_at) {
             $qrCodeUrl = $google2fa->getQRCodeUrl(
                 config('app.name'),
                 $user->email,
@@ -50,7 +51,7 @@ class TwoFactorController extends Controller
         $google2fa = app('pragmarx.google2fa');
         $secret = $request->session()->get('2fa_setup_secret', $user->two_factor_secret);
 
-        if (!$secret) {
+        if (! $secret) {
             return back()->with('error', 'Secret key tidak ditemukan. Silakan muat ulang halaman.');
         }
 
@@ -93,8 +94,17 @@ class TwoFactorController extends Controller
      */
     public function challenge(Request $request)
     {
-        if (!$request->session()->has('2fa_user_id')) {
+        if (! $request->session()->has('2fa_user_id')) {
             return redirect()->route('login');
+        }
+
+        $userId = $request->session()->get('2fa_user_id');
+        $user = User::find($userId);
+        if ($user && $user->locked_until && now()->lt($user->locked_until)) {
+            $request->session()->forget(['2fa_user_id', '2fa_remember']);
+            $minutes = max(1, (int) now()->diffInMinutes($user->locked_until, false));
+
+            return redirect()->route('login')->withErrors(['login' => "Akun Anda telah dikunci selama {$minutes} menit karena terlalu banyak percobaan gagal."]);
         }
 
         return view('auth.two-factor-challenge');
@@ -110,13 +120,20 @@ class TwoFactorController extends Controller
         ]);
 
         $userId = $request->session()->get('2fa_user_id');
-        if (!$userId) {
+        if (! $userId) {
             return redirect()->route('login')->withErrors(['login' => 'Sesi login telah habis. Silakan login kembali.']);
         }
 
-        $user = \App\Models\User::find($userId);
-        if (!$user) {
+        $user = User::find($userId);
+        if (! $user) {
             return redirect()->route('login');
+        }
+
+        if ($user->locked_until && now()->lt($user->locked_until)) {
+            $request->session()->forget(['2fa_user_id', '2fa_remember']);
+            $minutes = max(1, (int) now()->diffInMinutes($user->locked_until, false));
+
+            return redirect()->route('login')->withErrors(['login' => "⛔ Akun Anda telah dikunci selama {$minutes} menit karena terlalu banyak percobaan gagal."]);
         }
 
         $google2fa = app('pragmarx.google2fa');
@@ -126,7 +143,7 @@ class TwoFactorController extends Controller
             // Login sukses
             $remember = $request->session()->get('2fa_remember', false);
             Auth::login($user, $remember);
-            
+
             $request->session()->regenerate();
             $request->session()->forget(['2fa_user_id', '2fa_remember']);
 
@@ -136,7 +153,7 @@ class TwoFactorController extends Controller
                 'locked_until' => null,
             ]);
 
-            \App\Models\AuditLog::create([
+            AuditLog::create([
                 'user_id' => $user->id,
                 'user_name' => $user->name,
                 'action' => 'login_2fa',
@@ -151,7 +168,31 @@ class TwoFactorController extends Controller
             return redirect()->intended(route('dashboard'))->with('success', 'Selamat datang kembali, '.$user->name);
         }
 
-        return back()->withErrors(['code' => 'Kode OTP tidak valid atau sudah kadaluarsa.'])->withInput();
+        $newCount = ($user->failed_login_count ?? 0) + 1;
+        $lockedUntil = null;
+        $shouldLock = false;
+
+        if ($newCount >= 5) {
+            $lockedUntil = now()->addMinutes(15);
+            $shouldLock = true;
+            $newCount = 0;
+        }
+
+        $user->update([
+            'failed_login_count' => $newCount,
+            'locked_until' => $lockedUntil,
+        ]);
+
+        if ($shouldLock) {
+            $request->session()->forget(['2fa_user_id', '2fa_remember']);
+
+            return redirect()->route('login')->withErrors([
+                'login' => '⛔ Akun Anda telah dikunci selama 15 menit karena terlalu banyak percobaan OTP yang salah.',
+            ]);
+        }
+
+        $remaining = 5 - $newCount;
+
+        return back()->withErrors(['code' => "Kode OTP tidak valid atau sudah kadaluarsa. Sisa percobaan: {$remaining} kali sebelum akun dikunci."])->withInput();
     }
 }
-

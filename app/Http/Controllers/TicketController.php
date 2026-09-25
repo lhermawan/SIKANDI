@@ -118,15 +118,25 @@ class TicketController extends Controller
 
     public function addComment(Request $request, Ticket $ticket): RedirectResponse
     {
+        $user = Auth::user();
+        if ($user->hasRole('OPD User') && $ticket->organization_id !== $user->organization_id) {
+            abort(403, 'Anda tidak memiliki akses ke tiket ini.');
+        }
+
         $validated = $request->validate([
             'comment' => 'required|string',
             'is_internal' => 'nullable|boolean',
         ]);
 
+        $isInternal = false;
+        if (! $user->hasRole('OPD User')) {
+            $isInternal = $request->boolean('is_internal');
+        }
+
         $ticket->comments()->create([
-            'user_id' => Auth::id(),
+            'user_id' => $user->id,
             'comment' => $validated['comment'],
-            'is_internal' => $request->boolean('is_internal'),
+            'is_internal' => $isInternal,
         ]);
 
         return back()->with('success', 'Catatan berhasil ditambahkan ke percakapan tiket.');
@@ -134,11 +144,25 @@ class TicketController extends Controller
 
     public function updateStatus(Request $request, Ticket $ticket): RedirectResponse
     {
-        $validated = $request->validate([
+        $user = Auth::user();
+        if ($user->hasRole('OPD User') && $ticket->organization_id !== $user->organization_id) {
+            abort(403, 'Anda tidak memiliki akses ke tiket ini.');
+        }
+
+        $rules = [
             'status' => 'required|in:open,assigned,in_progress,waiting,resolved,closed',
-            'assigned_technician_id' => 'nullable|exists:users,id',
             'resolution_notes' => 'nullable|string',
-        ]);
+        ];
+
+        if (! $user->hasRole('OPD User')) {
+            $rules['assigned_technician_id'] = 'nullable|exists:users,id';
+        }
+
+        $validated = $request->validate($rules);
+
+        if ($user->hasRole('OPD User')) {
+            unset($validated['assigned_technician_id']);
+        }
 
         if ($validated['status'] === 'resolved' && empty($ticket->resolved_at)) {
             $validated['resolved_at'] = now();
@@ -193,7 +217,7 @@ class TicketController extends Controller
     public function destroy(Ticket $ticket): RedirectResponse
     {
         $user = Auth::user();
-        if ($user->hasRole('OPD User') && $ticket->organization_id !== $user->organization_id) {
+        if ($user->hasRole('OPD User') || ! $user->hasAnyRole(['Super Admin', 'Admin Persandian', 'IT Technician'])) {
             abort(403, 'Anda tidak memiliki akses untuk menghapus tiket ini.');
         }
 
