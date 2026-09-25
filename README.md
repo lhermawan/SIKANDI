@@ -53,8 +53,8 @@ SIKANDI dibangun berlandaskan prinsip **Zero Trust Architecture** dan pertahanan
 ```mermaid
 flowchart TD
     subgraph Perimeter["Perimeter Publik & Saluran Pelaporan"]
-        PubUser["Masyarakat / Instansi Luar"] -->|Laporan Insiden (Web & WhatsApp)| InboundAPI["Public Inbound Gateway (/api/whatsapp)"]
-        Attacker["Ancaman / Bot / Malicious IP"] -.->|Percobaan Serangan| EdgeNodes
+        PubUser["Masyarakat / Instansi Luar"] -->|"Laporan Insiden (Web & WhatsApp)"| InboundAPI["Public Inbound Gateway (/api/whatsapp)"]
+        Attacker["Ancaman / Bot / Malicious IP"] -.->|"Percobaan Serangan"| EdgeNodes
     end
 
     subgraph CorePlatform["Platform Sentral SIKANDI (Laravel 13 & PHP 8.4)"]
@@ -77,13 +77,13 @@ flowchart TD
     end
 
     InboundAPI --> Dashboard
-    EdgeNodes -->|Heartbeat, Metrics, Telemetry & Logs| APIGateway
+    EdgeNodes -->|"Heartbeat, Metrics, Telemetry & Logs"| APIGateway
     APIGateway --> SecEngine
     SecEngine --> ThreatIntel
     ThreatIntel --> Dashboard
-    Dashboard -->|Review Analis SOC| Executor
-    Executor -->|Sync Blacklist & Command Polling| APIGateway
-    APIGateway -->|Broadcast Block Rules| EdgeNodes
+    Dashboard -->|"Review Analis SOC"| Executor
+    Executor -->|"Sync Blacklist & Command Polling"| APIGateway
+    APIGateway -->|"Broadcast Block Rules"| EdgeNodes
     EdgeNodes --> Firewall
 ```
 
