@@ -113,4 +113,9 @@ class SecurityIncident extends Model
     {
         return $this->hasMany(SecurityIncidentAuditLog::class, 'incident_id');
     }
+
+    public function publicIncidentReport()
+    {
+        return $this->hasOne(PublicIncidentReport::class, 'security_incident_id');
+    }
 }

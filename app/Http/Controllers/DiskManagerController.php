@@ -23,17 +23,39 @@ class DiskManagerController extends Controller
 
     public function requestScan(Request $request, Agent $agent)
     {
-        $paths = $request->input('paths', [
+        $allowedScanPrefixes = [
             '/var/cache',
             '/tmp',
             '/var/www',
             '/root/.npm',
             '/root/.cache',
-        ]);
+        ];
+
+        $rawPaths = $request->input('paths', $allowedScanPrefixes);
+        if (! is_array($rawPaths)) {
+            $rawPaths = $allowedScanPrefixes;
+        }
+
+        $validPaths = [];
+        foreach ($rawPaths as $p) {
+            if (! is_string($p) || str_contains($p, '..')) {
+                continue;
+            }
+            foreach ($allowedScanPrefixes as $prefix) {
+                if ($p === $prefix || str_starts_with($p, $prefix.'/')) {
+                    $validPaths[] = $p;
+                    break;
+                }
+            }
+        }
+
+        if (empty($validPaths)) {
+            $validPaths = $allowedScanPrefixes;
+        }
 
         $agent->commands()->create([
             'action' => 'scan_disk',
-            'paths' => $paths,
+            'paths' => array_values(array_unique($validPaths)),
             'status' => 'pending',
         ]);
 
@@ -66,6 +88,12 @@ class DiskManagerController extends Controller
 
             $isAllowed = false;
             foreach ($allowedPrefixes as $prefix) {
+                // Cegah penghapusan direktori induk itu sendiri (contoh: /tmp/ atau /tmp)
+                if (rtrim($path, '/') === rtrim($prefix, '/')) {
+                    return redirect()->route('agents.disk.show', $agent)
+                        ->with('error', "Dilarang menghapus direktori induk sistem: {$path}");
+                }
+
                 if (str_starts_with($path, $prefix)) {
                     $isAllowed = true;
                     break;

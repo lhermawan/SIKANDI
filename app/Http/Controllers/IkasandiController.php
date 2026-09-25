@@ -104,6 +104,11 @@ class IkasandiController extends Controller
 
     public function submitAssessment(Request $request, Assessment $assessment): RedirectResponse
     {
+        $user = Auth::user();
+        if ($user->hasRole('OPD User') && $assessment->organization_id !== $user->organization_id) {
+            abort(403, 'Anda tidak berhak mengisi atau mengubah assessment OPD lain.');
+        }
+
         $answers = $request->input('answers', []);
         $notes = $request->input('notes', []);
 
@@ -140,6 +145,11 @@ class IkasandiController extends Controller
 
     public function verifyAssessment(Request $request, Assessment $assessment): RedirectResponse
     {
+        $user = Auth::user();
+        if (! $user->hasAnyRole(['Super Admin', 'Admin Persandian'])) {
+            abort(403, 'Hanya Admin Persandian atau Super Admin yang dapat memverifikasi IKASANDI.');
+        }
+
         $request->validate([
             'status' => 'required|in:verified,published,revising',
             'feedback' => 'nullable|string',
@@ -148,8 +158,6 @@ class IkasandiController extends Controller
         $assessment->update([
             'status' => $request->status,
             'verified_at' => now(),
-            // You can add a feedback column to assessments table if needed,
-            // or just use it to send an email. For now we will update status.
         ]);
 
         return back()->with('success', 'Status Assessment berhasil diperbarui.');

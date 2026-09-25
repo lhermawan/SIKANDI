@@ -55,11 +55,21 @@ class KnowledgeController extends Controller
 
     public function edit(KnowledgeArticle $knowledge): View
     {
+        $user = auth()->user();
+        if (! $user->hasAnyRole(['Super Admin', 'Admin Persandian']) && $knowledge->author_id !== $user->id) {
+            abort(403, 'Akses ditolak. Anda tidak memiliki izin untuk mengedit artikel ini.');
+        }
+
         return view('knowledge.edit', compact('knowledge'));
     }
 
     public function update(Request $request, KnowledgeArticle $knowledge)
     {
+        $user = auth()->user();
+        if (! $user->hasAnyRole(['Super Admin', 'Admin Persandian']) && $knowledge->author_id !== $user->id) {
+            abort(403, 'Akses ditolak. Anda tidak memiliki izin untuk mengubah artikel ini.');
+        }
+
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'category' => 'required|string|max:100',
@@ -76,6 +86,11 @@ class KnowledgeController extends Controller
 
     public function destroy(KnowledgeArticle $knowledge)
     {
+        $user = auth()->user();
+        if (! $user->hasAnyRole(['Super Admin', 'Admin Persandian']) && $knowledge->author_id !== $user->id) {
+            abort(403, 'Akses ditolak. Anda tidak memiliki izin untuk menghapus artikel ini.');
+        }
+
         $knowledge->delete();
 
         return redirect()->route('knowledge.index')->with('success', 'Artikel berhasil dihapus.');
@@ -109,12 +124,35 @@ class KnowledgeController extends Controller
 
     public function downloadDocument(Document $document)
     {
-        // Add authorization check if confidential later
-        return response()->download(storage_path('app/public/'.$document->file_path), $document->title.'.'.pathinfo($document->file_path, PATHINFO_EXTENSION));
+        $user = auth()->user();
+        if ($document->is_confidential) {
+            $isAuthorized = $user->hasAnyRole(['Super Admin', 'Admin Persandian'])
+                || ($user->organization_id && $user->organization_id === $document->organization_id)
+                || ($user->id === $document->uploaded_by);
+
+            if (! $isAuthorized) {
+                abort(403, 'Akses ditolak: Dokumen ini bersifat rahasia dan hanya dapat diakses oleh instansi terkait atau admin.');
+            }
+        }
+
+        $fullPath = storage_path('app/public/'.$document->file_path);
+        if (! file_exists($fullPath)) {
+            abort(404, 'Berkas dokumen tidak ditemukan di server.');
+        }
+
+        return response()->download($fullPath, $document->title.'.'.pathinfo($document->file_path, PATHINFO_EXTENSION));
     }
 
     public function destroyDocument(Document $document)
     {
+        $user = auth()->user();
+        $isAuthorized = $user->hasAnyRole(['Super Admin', 'Admin Persandian'])
+            || ($user->id === $document->uploaded_by);
+
+        if (! $isAuthorized) {
+            abort(403, 'Akses ditolak: Anda tidak memiliki izin untuk menghapus dokumen ini.');
+        }
+
         if (Storage::disk('public')->exists($document->file_path)) {
             Storage::disk('public')->delete($document->file_path);
         }

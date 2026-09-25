@@ -201,6 +201,11 @@ class AgentApiController extends Controller
 
     public function blacklist(Request $request)
     {
+        $agent = $request->user();
+        if (! $agent instanceof Agent) {
+            return response()->json(['message' => 'Unauthorized. Token does not belong to an agent.'], 403);
+        }
+
         // Ambil semua IP yang telah diputuskan untuk diblokir oleh SOC (Human-in-the-Loop)
         // Yaitu response dengan action = 'block_ip' dan status = 'executed'
         $responses = SecurityIncidentResponse::where('action', 'block_ip')
@@ -224,7 +229,7 @@ class AgentApiController extends Controller
     public function fetchCommands(Request $request)
     {
         $agent = $request->user();
-        if (! $agent || ! in_array($agent->status, ['approved', 'online'])) {
+        if (! $agent instanceof Agent || ! in_array($agent->status, ['approved', 'online'])) {
             return response()->json(['message' => 'Unauthorized or agent not active.'], 403);
         }
 
@@ -250,6 +255,10 @@ class AgentApiController extends Controller
     public function submitCommandResult(Request $request, $id)
     {
         $agent = $request->user();
+        if (! $agent instanceof Agent) {
+            return response()->json(['message' => 'Unauthorized. Token does not belong to an agent.'], 403);
+        }
+
         $command = AgentCommand::where('agent_id', $agent->id)->findOrFail($id);
 
         $command->update([

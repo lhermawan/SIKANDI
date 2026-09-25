@@ -232,7 +232,7 @@
                                         <span class="font-semibold text-slate-200 text-xs uppercase tracking-wider">{{ $ev->event_type }} ({{ $ev->action }})</span>
                                         <span class="text-[10px] text-slate-500 whitespace-nowrap">{{ $ev->timestamp->format('d M Y H:i:s') }}</span>
                                     </div>
-                                    <p class="text-xs text-slate-400 leading-relaxed break-words whitespace-normal">{!! str_replace('**', '', $ev->narrative) !!}</p>
+                                    <p class="text-xs text-slate-400 leading-relaxed break-words whitespace-normal">{{ str_replace('**', '', $ev->narrative) }}</p>
                                     @if($ev->incident_id)
                                         <a href="{{ route('security.incidents.show', $ev->incident_id) }}" class="inline-block mt-1 text-[10px] text-blue-400 hover:underline">Lihat Insiden Terkait &rarr;</a>
                                     @endif

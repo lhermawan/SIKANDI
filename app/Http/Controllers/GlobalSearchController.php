@@ -22,14 +22,22 @@ class GlobalSearchController extends Controller
 
         $results = [];
 
+        $user = auth()->user();
+        $isGlobalAdmin = $user && $user->hasAnyRole(['Super Admin', 'Admin Persandian', 'IT Technician']);
+        $userOrgId = $user?->organization_id;
+
         // 1. Configuration Items (CMDB)
-        $cis = ConfigurationItem::where('name', 'like', "%{$q}%")
-            ->orWhere('ci_code', 'like', "%{$q}%")
-            ->orWhere('hostname', 'like', "%{$q}%")
-            ->orWhere('ip_address', 'like', "%{$q}%")
-            ->orWhere('domain', 'like', "%{$q}%")
-            ->take(5)
-            ->get();
+        $ciQuery = ConfigurationItem::where(function ($query) use ($q) {
+            $query->where('name', 'like', "%{$q}%")
+                ->orWhere('ci_code', 'like', "%{$q}%")
+                ->orWhere('hostname', 'like', "%{$q}%")
+                ->orWhere('ip_address', 'like', "%{$q}%")
+                ->orWhere('domain', 'like', "%{$q}%");
+        });
+        if (! $isGlobalAdmin && $userOrgId) {
+            $ciQuery->where('organization_id', $userOrgId);
+        }
+        $cis = $ciQuery->take(5)->get();
 
         foreach ($cis as $ci) {
             $results[] = [
@@ -42,12 +50,16 @@ class GlobalSearchController extends Controller
         }
 
         // 2. IT Assets (ITAM)
-        $assets = Asset::where('name', 'like', "%{$q}%")
-            ->orWhere('asset_number', 'like', "%{$q}%")
-            ->orWhere('serial_number', 'like', "%{$q}%")
-            ->orWhere('brand', 'like', "%{$q}%")
-            ->take(5)
-            ->get();
+        $assetQuery = Asset::where(function ($query) use ($q) {
+            $query->where('name', 'like', "%{$q}%")
+                ->orWhere('asset_number', 'like', "%{$q}%")
+                ->orWhere('serial_number', 'like', "%{$q}%")
+                ->orWhere('brand', 'like', "%{$q}%");
+        });
+        if (! $isGlobalAdmin && $userOrgId) {
+            $assetQuery->where('organization_id', $userOrgId);
+        }
+        $assets = $assetQuery->take(5)->get();
 
         foreach ($assets as $asset) {
             $results[] = [
@@ -60,10 +72,14 @@ class GlobalSearchController extends Controller
         }
 
         // 3. Service Desk Tickets
-        $tickets = Ticket::where('ticket_number', 'like', "%{$q}%")
-            ->orWhere('title', 'like', "%{$q}%")
-            ->take(4)
-            ->get();
+        $ticketQuery = Ticket::where(function ($query) use ($q) {
+            $query->where('ticket_number', 'like', "%{$q}%")
+                ->orWhere('title', 'like', "%{$q}%");
+        });
+        if (! $isGlobalAdmin && $userOrgId) {
+            $ticketQuery->where('organization_id', $userOrgId);
+        }
+        $tickets = $ticketQuery->take(4)->get();
 
         foreach ($tickets as $t) {
             $results[] = [
@@ -76,10 +92,14 @@ class GlobalSearchController extends Controller
         }
 
         // 4. Incidents
-        $incidents = Incident::where('incident_number', 'like', "%{$q}%")
-            ->orWhere('title', 'like', "%{$q}%")
-            ->take(4)
-            ->get();
+        $incQuery = Incident::where(function ($query) use ($q) {
+            $query->where('incident_number', 'like', "%{$q}%")
+                ->orWhere('title', 'like', "%{$q}%");
+        });
+        if (! $isGlobalAdmin && $userOrgId) {
+            $incQuery->where('organization_id', $userOrgId);
+        }
+        $incidents = $incQuery->take(4)->get();
 
         foreach ($incidents as $inc) {
             $results[] = [
@@ -92,10 +112,14 @@ class GlobalSearchController extends Controller
         }
 
         // 5. Monitored Websites
-        $websites = Website::where('name', 'like', "%{$q}%")
-            ->orWhere('url', 'like', "%{$q}%")
-            ->take(4)
-            ->get();
+        $webQuery = Website::where(function ($query) use ($q) {
+            $query->where('name', 'like', "%{$q}%")
+                ->orWhere('url', 'like', "%{$q}%");
+        });
+        if (! $isGlobalAdmin && $userOrgId) {
+            $webQuery->where('organization_id', $userOrgId);
+        }
+        $websites = $webQuery->take(4)->get();
 
         foreach ($websites as $web) {
             $results[] = [
@@ -108,10 +132,14 @@ class GlobalSearchController extends Controller
         }
 
         // 6. Organizations (OPD)
-        $orgs = Organization::where('name', 'like', "%{$q}%")
-            ->orWhere('code', 'like', "%{$q}%")
-            ->take(4)
-            ->get();
+        $orgQuery = Organization::where(function ($query) use ($q) {
+            $query->where('name', 'like', "%{$q}%")
+                ->orWhere('code', 'like', "%{$q}%");
+        });
+        if (! $isGlobalAdmin && $userOrgId) {
+            $orgQuery->where('id', $userOrgId);
+        }
+        $orgs = $orgQuery->take(4)->get();
 
         foreach ($orgs as $org) {
             $results[] = [

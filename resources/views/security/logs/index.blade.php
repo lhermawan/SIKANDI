@@ -149,7 +149,7 @@
                                     <div class="min-w-0 flex-1">
                                         <h4 class="text-sm font-bold text-blue-400 mb-1">Narasi Kejadian</h4>
                                         <div class="text-sm text-slate-300 leading-relaxed prose prose-invert prose-p:my-1 prose-a:text-blue-400 max-w-none break-words">
-                                            {!! Str::markdown($event->narrative) !!}
+                                            {!! Str::markdown(e($event->narrative)) !!}
                                         </div>
                                     </div>
                                 </div>

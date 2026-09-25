@@ -28,18 +28,44 @@ class ApiController extends Controller
         $request->validate([
             'login' => 'required|string',
             'password' => 'required|string',
+            'otp_code' => 'nullable|string',
         ]);
 
         $user = User::where('email', $request->login)
             ->orWhere('username', $request->login)
             ->first();
 
+        // 1. Cek Account Lockout
+        if ($user && $user->locked_until && now()->lt($user->locked_until)) {
+            $minutesLeft = max(1, (int) now()->diffInMinutes($user->locked_until, false));
+
+            return response()->json([
+                'success' => false,
+                'message' => "Akun Anda sedang dikunci sementara karena terlalu banyak percobaan gagal. Silakan coba lagi dalam {$minutesLeft} menit.",
+            ], 423);
+        }
+
+        // 2. Cek Password
         if (! $user || ! Hash::check($request->password, $user->password)) {
+            if ($user) {
+                $newCount = ($user->failed_login_count ?? 0) + 1;
+                $lockedUntil = null;
+                if ($newCount >= 5) {
+                    $lockedUntil = now()->addMinutes(15);
+                    $newCount = 0;
+                }
+                $user->update([
+                    'failed_login_count' => $newCount,
+                    'locked_until' => $lockedUntil,
+                ]);
+            }
+
             throw ValidationException::withMessages([
                 'login' => ['Kredensial yang diberikan tidak valid.'],
             ]);
         }
 
+        // 3. Cek Status Aktif
         if (! $user->is_active) {
             return response()->json([
                 'success' => false,
@@ -47,7 +73,49 @@ class ApiController extends Controller
             ], 403);
         }
 
-        $token = $user->createToken('sikandi-api-token')->plainTextToken;
+        // 4. Verifikasi Two-Factor Authentication (2FA)
+        if ($user->two_factor_secret && $user->two_factor_confirmed_at) {
+            $otp = $request->input('otp_code') ?? $request->input('code');
+            if (empty($otp)) {
+                return response()->json([
+                    'success' => false,
+                    'requires_2fa' => true,
+                    'message' => 'Two-Factor Authentication (2FA) aktif untuk akun ini. Harap sertakan parameter otp_code.',
+                ], 403);
+            }
+
+            $google2fa = app('pragmarx.google2fa');
+            if (! $google2fa->verifyKey($user->two_factor_secret, $otp)) {
+                $newCount = ($user->failed_login_count ?? 0) + 1;
+                $lockedUntil = null;
+                if ($newCount >= 5) {
+                    $lockedUntil = now()->addMinutes(15);
+                    $newCount = 0;
+                }
+                $user->update([
+                    'failed_login_count' => $newCount,
+                    'locked_until' => $lockedUntil,
+                ]);
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Kode OTP 2FA tidak valid atau sudah kadaluarsa.',
+                ], 422);
+            }
+        }
+
+        // 5. Reset lockout counter & create token
+        $user->update([
+            'failed_login_count' => 0,
+            'locked_until' => null,
+            'last_login_at' => now(),
+        ]);
+
+        $abilities = $user->hasAnyRole(['Super Admin', 'Admin Persandian'])
+            ? ['*']
+            : ['user:access'];
+
+        $token = $user->createToken('sikandi-api-token', $abilities)->plainTextToken;
 
         return response()->json([
             'success' => true,

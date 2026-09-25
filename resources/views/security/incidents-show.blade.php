@@ -84,6 +84,29 @@
     </div>
 </div>
 
+@if($incident->publicIncidentReport)
+<div class="mb-6 p-4 rounded-xl bg-gradient-to-r from-emerald-950/40 via-slate-900 to-indigo-950/40 border border-emerald-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-lg shadow-emerald-950/20">
+    <div class="flex items-start sm:items-center gap-3">
+        <div class="p-2.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-lg shrink-0 mt-0.5 sm:mt-0">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+        </div>
+        <div>
+            <div class="flex flex-wrap items-center gap-2">
+                <span class="text-xs font-bold uppercase tracking-wider text-emerald-400">Asal Laporan Publik ({{ strtoupper($incident->publicIncidentReport->source) }})</span>
+                <span class="text-xs font-mono px-2 py-0.5 bg-slate-800 border border-slate-700 rounded text-slate-300">Tiket: {{ $incident->publicIncidentReport->ticket_number }}</span>
+            </div>
+            <p class="text-xs text-slate-300 mt-1">
+                Pelapor: <strong class="text-white">{{ $incident->publicIncidentReport->reporter_name }}</strong> ({{ $incident->publicIncidentReport->reporter_contact ?: $incident->publicIncidentReport->whatsapp_from }}) • Aset Terdampak: <span class="font-mono text-red-300">{{ $incident->publicIncidentReport->affected_asset ?: '-' }}</span>
+            </p>
+        </div>
+    </div>
+    <a href="{{ route('security.public-incidents.show', $incident->publicIncidentReport->id) }}" class="px-3.5 py-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-xs font-semibold text-emerald-300 transition shrink-0 flex items-center justify-center gap-1.5 self-start sm:self-center">
+        <span>Lihat Triage Awal</span>
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+    </a>
+</div>
+@endif
+
 <div class="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
     
     <!-- Left Column (Main Content) -->

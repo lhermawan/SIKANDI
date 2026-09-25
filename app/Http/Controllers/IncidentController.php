@@ -80,6 +80,11 @@ class IncidentController extends Controller
 
     public function update(Request $request, Incident $incident): RedirectResponse
     {
+        $user = Auth::user();
+        if (! $user->hasAnyRole(['Super Admin', 'Admin Persandian', 'IT Technician'])) {
+            abort(403, 'Akses ditolak. Hanya teknisi atau admin yang dapat memperbarui perkembangan insiden.');
+        }
+
         $validated = $request->validate([
             'status' => 'required|in:open,investigation,in_progress,resolved,closed',
             'priority' => 'required|in:critical,high,medium,low',

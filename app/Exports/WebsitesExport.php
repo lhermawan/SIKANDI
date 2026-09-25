@@ -3,22 +3,22 @@
 namespace App\Exports;
 
 use App\Models\Website;
-use Maatwebsite\Excel\Concerns\FromQuery;
-use Maatwebsite\Excel\Concerns\Exportable;
-use Maatwebsite\Excel\Concerns\WithHeadings;
-use Maatwebsite\Excel\Concerns\WithMapping;
-use Maatwebsite\Excel\Concerns\ShouldAutoSize;
-use Maatwebsite\Excel\Concerns\WithCustomStartCell;
-use Maatwebsite\Excel\Concerns\WithEvents;
-use Maatwebsite\Excel\Events\AfterSheet;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Database\Query\Builder;
+use Maatwebsite\Excel\Concerns\Exportable;
+use Maatwebsite\Excel\Concerns\FromQuery;
+use Maatwebsite\Excel\Concerns\ShouldAutoSize;
+use Maatwebsite\Excel\Concerns\WithCustomStartCell;
+use Maatwebsite\Excel\Concerns\WithEvents;
+use Maatwebsite\Excel\Concerns\WithHeadings;
+use Maatwebsite\Excel\Concerns\WithMapping;
+use Maatwebsite\Excel\Events\AfterSheet;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
-use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
 
-class WebsitesExport implements FromQuery, WithHeadings, WithMapping, ShouldAutoSize, WithCustomStartCell, WithEvents
+class WebsitesExport implements FromQuery, ShouldAutoSize, WithCustomStartCell, WithEvents, WithHeadings, WithMapping
 {
     use Exportable;
 
@@ -34,9 +34,9 @@ class WebsitesExport implements FromQuery, WithHeadings, WithMapping, ShouldAuto
         $query = Website::query()->with(['configurationItem', 'organization'])->latest('last_checked_at');
 
         if ($search = $this->request->input('search')) {
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('url', 'like', "%{$search}%");
+                    ->orWhere('url', 'like', "%{$search}%");
             });
         }
         if ($status = $this->request->input('status')) {
@@ -67,8 +67,22 @@ class WebsitesExport implements FromQuery, WithHeadings, WithMapping, ShouldAuto
             'Response Time (ms)',
             'Status SSL',
             'Masa Aktif SSL (Hari)',
-            'Terakhir Dicek'
+            'Terakhir Dicek',
         ];
+    }
+
+    private function sanitizeFormula(?string $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return $value;
+        }
+
+        $dangerousChars = ['=', '+', '-', '@', "\t", "\r"];
+        if (in_array($value[0], $dangerousChars, true)) {
+            return "'".$value;
+        }
+
+        return $value;
     }
 
     public function map($site): array
@@ -79,18 +93,18 @@ class WebsitesExport implements FromQuery, WithHeadings, WithMapping, ShouldAuto
         }
 
         return [
-            $site->name,
-            $site->url,
+            $this->sanitizeFormula($site->name),
+            $this->sanitizeFormula($site->url),
             $site->ip_address,
-            $site->organization ? $site->organization->name : '',
+            $this->sanitizeFormula($site->organization ? $site->organization->name : ''),
             $site->configurationItem ? $site->configurationItem->ci_code : '',
             strtoupper($site->current_status),
-            $site->current_status === 'down' ? $site->last_error : '',
+            $this->sanitizeFormula($site->current_status === 'down' ? $site->last_error : ''),
             $site->http_status_code,
             $site->response_time_ms,
             strtoupper($site->ssl_status),
             $sslDays,
-            $site->last_checked_at ? $site->last_checked_at->format('Y-m-d H:i:s') : ''
+            $site->last_checked_at ? $site->last_checked_at->format('Y-m-d H:i:s') : '',
         ];
     }
 
@@ -102,9 +116,9 @@ class WebsitesExport implements FromQuery, WithHeadings, WithMapping, ShouldAuto
     public function registerEvents(): array
     {
         return [
-            AfterSheet::class => function(AfterSheet $event) {
+            AfterSheet::class => function (AfterSheet $event) {
                 $sheet = $event->sheet->getDelegate();
-                
+
                 // Judul Laporan
                 $sheet->mergeCells('A1:L1');
                 $sheet->setCellValue('A1', 'LAPORAN HASIL MONITORING WEBSITE & SSL (SIKANDI)');
@@ -113,7 +127,7 @@ class WebsitesExport implements FromQuery, WithHeadings, WithMapping, ShouldAuto
 
                 // Tanggal Export
                 $sheet->mergeCells('A2:L2');
-                $sheet->setCellValue('A2', 'Tanggal Export: ' . now()->translatedFormat('d F Y H:i:s'));
+                $sheet->setCellValue('A2', 'Tanggal Export: '.now()->translatedFormat('d F Y H:i:s'));
                 $sheet->getStyle('A2')->getFont()->setItalic(true);
                 $sheet->getStyle('A2')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
@@ -125,17 +139,17 @@ class WebsitesExport implements FromQuery, WithHeadings, WithMapping, ShouldAuto
                     ],
                     'fill' => [
                         'fillType' => Fill::FILL_SOLID,
-                        'startColor' => ['argb' => 'FF0F172A'] // Slate 900
+                        'startColor' => ['argb' => 'FF0F172A'], // Slate 900
                     ],
                     'alignment' => [
                         'horizontal' => Alignment::HORIZONTAL_CENTER,
                         'vertical' => Alignment::VERTICAL_CENTER,
-                    ]
+                    ],
                 ]);
 
                 // Menambahkan Border ke seluruh data
                 $highestRow = $sheet->getHighestRow();
-                $sheet->getStyle('A4:L' . $highestRow)->applyFromArray([
+                $sheet->getStyle('A4:L'.$highestRow)->applyFromArray([
                     'borders' => [
                         'allBorders' => [
                             'borderStyle' => Border::BORDER_THIN,
@@ -145,7 +159,7 @@ class WebsitesExport implements FromQuery, WithHeadings, WithMapping, ShouldAuto
                 ]);
 
                 // Auto-filter untuk kolom-kolom tabel
-                $sheet->setAutoFilter('A4:L' . $highestRow);
+                $sheet->setAutoFilter('A4:L'.$highestRow);
             },
         ];
     }

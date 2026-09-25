@@ -92,13 +92,13 @@ class RoleController extends Controller
         ];
 
         // Jika bukan role bawaan sistem, izinkan ganti nama
-        if (!in_array($role->name, $this->protectedRoles)) {
+        if (! in_array($role->name, $this->protectedRoles)) {
             $rules['name'] = 'required|string|max:255|unique:roles,name,'.$role->id;
         }
 
         $request->validate($rules);
 
-        if (!in_array($role->name, $this->protectedRoles) && $request->has('name')) {
+        if (! in_array($role->name, $this->protectedRoles) && $request->has('name')) {
             $role->update(['name' => $request->name]);
         }
 

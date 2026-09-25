@@ -2,22 +2,63 @@
 
 namespace App\Services;
 
+use App\Models\Incident;
 use App\Models\Website;
 use App\Models\WebsiteCheckLog;
-use App\Models\Incident;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\Http;
 
 class WebsiteMonitoringService
 {
     public function check(Website $website): void
     {
+        if (! self::isSafePublicUrl($website->url)) {
+            $errorMessage = 'Akses diblokir: URL mengarah ke alamat lokal / privat (Anti-SSRF Policy).';
+            WebsiteCheckLog::create([
+                'website_id' => $website->id,
+                'status' => 'down',
+                'http_status_code' => 403,
+                'response_time_ms' => 0,
+                'error_message' => $errorMessage,
+                'ssl_valid' => false,
+                'ssl_days_left' => null,
+                'checked_at' => now(),
+            ]);
+
+            $website->update([
+                'current_status' => 'down',
+                'http_status_code' => 403,
+                'response_time_ms' => 0,
+                'last_error' => $errorMessage,
+                'ssl_status' => 'invalid',
+                'last_checked_at' => now(),
+            ]);
+
+            return;
+        }
+
         $startTime = microtime(true);
         $status = 'down';
         $httpCode = null;
         $errorMessage = null;
 
         try {
-            $response = Http::withoutVerifying()->timeout(10)->get($website->url);
+            $response = Http::withoutVerifying()
+                ->timeout(10)
+                ->withOptions([
+                    'allow_redirects' => [
+                        'max' => 5,
+                        'strict' => true,
+                        'referer' => false,
+                        'protocols' => ['http', 'https'],
+                        'on_redirect' => function ($request, $response, $uri) {
+                            if (! WebsiteMonitoringService::isSafePublicUrl((string) $uri)) {
+                                throw new \RuntimeException('Redirect ke IP/host privat atau tidak diizinkan diblokir (SSRF Protection).');
+                            }
+                        },
+                    ],
+                ])
+                ->get($website->url);
             $httpCode = $response->status();
             $status = $response->successful() ? 'up' : 'down';
             if (! $response->successful()) {
@@ -28,7 +69,7 @@ class WebsiteMonitoringService
         }
 
         $responseTimeMs = (int) ((microtime(true) - $startTime) * 1000);
-        
+
         // Resolve IP Address
         $ipAddress = null;
         $host = parse_url($website->url, PHP_URL_HOST);
@@ -121,13 +162,54 @@ class WebsiteMonitoringService
                             'detected_at' => now(),
                         ]);
                         break; // Success
-                    } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
+                    } catch (UniqueConstraintViolationException $e) {
                         $attempts++;
-                        if ($attempts >= 3) throw $e;
+                        if ($attempts >= 3) {
+                            throw $e;
+                        }
                         usleep(100000); // 100ms delay
                     }
                 }
             }
         }
+    }
+
+    public static function isSafePublicUrl(string $url): bool
+    {
+        $parts = parse_url($url);
+        if (! $parts || ! isset($parts['scheme'], $parts['host'])) {
+            return false;
+        }
+
+        $scheme = strtolower($parts['scheme']);
+        if (! in_array($scheme, ['http', 'https'], true)) {
+            return false;
+        }
+
+        $host = strtolower($parts['host']);
+        if (in_array($host, ['localhost', '127.0.0.1', '::1', '0.0.0.0'], true)) {
+            return false;
+        }
+
+        if (isset($parts['port']) && ! in_array((int) $parts['port'], [80, 443, 8080, 8443], true)) {
+            return false;
+        }
+
+        $ips = gethostbynamel($host);
+        if ($ips === false || empty($ips)) {
+            if (filter_var($host, FILTER_VALIDATE_IP)) {
+                $ips = [$host];
+            } else {
+                return false;
+            }
+        }
+
+        foreach ($ips as $ip) {
+            if (! filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

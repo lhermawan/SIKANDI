@@ -2,6 +2,8 @@
 
 namespace App\Traits;
 
+use Illuminate\Database\Eloquent\SoftDeletes;
+
 trait GeneratesUniqueCode
 {
     /**
@@ -12,7 +14,12 @@ trait GeneratesUniqueCode
         $year = date('Y');
         $fullPrefix = $includeYear ? "{$prefix}-{$year}-" : "{$prefix}-";
 
-        $latest = static::where($column, 'like', "{$fullPrefix}%")
+        $query = static::query();
+        if (in_array(SoftDeletes::class, class_uses_recursive(static::class))) {
+            $query->withTrashed();
+        }
+
+        $latest = $query->where($column, 'like', "{$fullPrefix}%")
             ->orderBy('id', 'desc')
             ->value($column);
 
@@ -23,6 +30,18 @@ trait GeneratesUniqueCode
             $number = $currentNum + 1;
         }
 
-        return $fullPrefix.str_pad((string) $number, $digits, '0', STR_PAD_LEFT);
+        do {
+            $candidate = $fullPrefix.str_pad((string) $number, $digits, '0', STR_PAD_LEFT);
+            $check = static::query();
+            if (in_array(SoftDeletes::class, class_uses_recursive(static::class))) {
+                $check->withTrashed();
+            }
+            $exists = $check->where($column, $candidate)->exists();
+            if ($exists) {
+                $number++;
+            }
+        } while ($exists);
+
+        return $candidate;
     }
 }

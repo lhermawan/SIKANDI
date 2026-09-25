@@ -2,9 +2,9 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
-use App\Models\Website;
 use App\Jobs\CheckWebsitesBatch;
+use App\Models\Website;
+use Illuminate\Console\Command;
 
 class CheckWebsitesCommand extends Command
 {
@@ -34,6 +34,7 @@ class CheckWebsitesCommand extends Command
 
         if (empty($websiteIds)) {
             $this->info('No websites found to check.');
+
             return;
         }
 
@@ -43,6 +44,6 @@ class CheckWebsitesCommand extends Command
             CheckWebsitesBatch::dispatch($websiteId);
         }
 
-        $this->info(count($websiteIds) . ' website checks dispatched successfully.');
+        $this->info(count($websiteIds).' website checks dispatched successfully.');
     }
 }

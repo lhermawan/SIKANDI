@@ -2,18 +2,19 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\ConfigurationItem;
-use App\Models\Incident;
-use App\Models\Organization;
-use App\Models\Website;
-use App\Models\WebsiteCheckLog;
 use App\Exports\WebsitesExport;
 use App\Imports\WebsitesImport;
-use Maatwebsite\Excel\Facades\Excel;
+use App\Jobs\CheckWebsitesBatch;
+use App\Models\ConfigurationItem;
+use App\Models\Organization;
+use App\Models\Website;
+use App\Services\WebsiteMonitoringService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Bus;
 use Illuminate\View\View;
+use Maatwebsite\Excel\Concerns\FromArray;
+use Maatwebsite\Excel\Facades\Excel;
 
 class MonitoringController extends Controller
 {
@@ -23,9 +24,9 @@ class MonitoringController extends Controller
             ->latest('last_checked_at');
 
         if ($search = $request->input('search')) {
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('url', 'like', "%{$search}%");
+                    ->orWhere('url', 'like', "%{$search}%");
             });
         }
 
@@ -61,7 +62,16 @@ class MonitoringController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'url' => 'required|url|max:255',
+            'url' => [
+                'required',
+                'url',
+                'max:255',
+                function ($attribute, $value, $fail) {
+                    if (! WebsiteMonitoringService::isSafePublicUrl($value)) {
+                        $fail('URL website tidak valid atau mengarah ke IP privat / loopback internal.');
+                    }
+                },
+            ],
             'organization_id' => 'required|exists:organizations,id',
             'ci_id' => 'required|exists:configuration_items,id',
         ]);
@@ -75,7 +85,16 @@ class MonitoringController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'url' => 'required|url|max:255',
+            'url' => [
+                'required',
+                'url',
+                'max:255',
+                function ($attribute, $value, $fail) {
+                    if (! WebsiteMonitoringService::isSafePublicUrl($value)) {
+                        $fail('URL website tidak valid atau mengarah ke IP privat / loopback internal.');
+                    }
+                },
+            ],
             'organization_id' => 'required|exists:organizations,id',
             'ci_id' => 'required|exists:configuration_items,id',
         ]);
@@ -97,21 +116,30 @@ class MonitoringController extends Controller
     {
         $org = Organization::first();
         $ci = ConfigurationItem::first();
-        
+
         $template = [
             ['name', 'url', 'organization_id', 'ci_id'],
             [
                 'Website Resmi Dummy',
                 'https://example.ciamiskab.go.id',
                 $org ? $org->id : '1',
-                $ci ? $ci->id : '1'
-            ]
+                $ci ? $ci->id : '1',
+            ],
         ];
-        
-        $export = new class($template) implements \Maatwebsite\Excel\Concerns\FromArray {
+
+        $export = new class($template) implements FromArray
+        {
             protected $template;
-            public function __construct($template) { $this->template = $template; }
-            public function array(): array { return $this->template; }
+
+            public function __construct($template)
+            {
+                $this->template = $template;
+            }
+
+            public function array(): array
+            {
+                return $this->template;
+            }
         };
 
         return Excel::download($export, 'template_import_website.xlsx');
@@ -125,32 +153,32 @@ class MonitoringController extends Controller
     public function import(Request $request): RedirectResponse
     {
         $request->validate([
-            'file' => 'required|mimes:xlsx,xls,csv|max:2048'
+            'file' => 'required|mimes:xlsx,xls,csv|max:2048',
         ]);
 
         Excel::import(new WebsitesImport, $request->file('file'));
 
-        return back()->with('success', "Berhasil mengimpor website ke dalam monitoring.");
+        return back()->with('success', 'Berhasil mengimpor website ke dalam monitoring.');
     }
 
     public function check(Website $website): RedirectResponse
     {
-        $service = app(\App\Services\WebsiteMonitoringService::class);
+        $service = app(WebsiteMonitoringService::class);
         $service->check($website);
 
         return back()->with('success', "Pemeriksaan untuk {$website->name} selesai. Status: ".strtoupper($website->fresh()->current_status));
     }
-    
+
     public function checkAll(Request $request)
     {
         $websiteIds = Website::pluck('id')->toArray();
 
         $jobs = [];
         foreach ($websiteIds as $websiteId) {
-            $jobs[] = new \App\Jobs\CheckWebsitesBatch($websiteId);
+            $jobs[] = new CheckWebsitesBatch($websiteId);
         }
 
-        $batch = \Illuminate\Support\Facades\Bus::batch($jobs)
+        $batch = Bus::batch($jobs)
             ->name('Bulk Website Monitoring')
             ->dispatch();
 
@@ -159,9 +187,9 @@ class MonitoringController extends Controller
 
     public function batchStatus($id)
     {
-        $batch = \Illuminate\Support\Facades\Bus::findBatch($id);
+        $batch = Bus::findBatch($id);
 
-        if (!$batch) {
+        if (! $batch) {
             return response()->json(['error' => 'Batch not found'], 404);
         }
 
@@ -170,7 +198,7 @@ class MonitoringController extends Controller
             'progress' => $batch->progress(),
             'finished' => $batch->processedJobs(),
             'totalJobs' => $batch->totalJobs,
-            'is_finished' => $batch->finished()
+            'is_finished' => $batch->finished(),
         ]);
     }
 }
